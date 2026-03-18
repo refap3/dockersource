@@ -1,9 +1,11 @@
 services:
   twingate-connector:
-    image: twingate/connector:latest
+    image: twingate/connector:1
     container_name: twingate-connector
     restart: unless-stopped
     environment:
       - TWINGATE_NETWORK=${TWINGATE_NETWORK}
       - TWINGATE_ACCESS_TOKEN=${TWINGATE_ACCESS_TOKEN}
       - TWINGATE_REFRESH_TOKEN=${TWINGATE_REFRESH_TOKEN}
+      - TWINGATE_LABEL_HOSTNAME=${TWINGATE_LABEL_HOSTNAME}
+      - TWINGATE_LABEL_DEPLOYED_BY=docker

@@ -1,16 +1,20 @@
 services:
   netalertx:
-    image: jokobsk/netalertx:latest
+    image: ghcr.io/netalertx/netalertx:latest
     container_name: netalertx
     restart: unless-stopped
     network_mode: host
-    volumes:
-      - netalertx_config:/app/config
-      - netalertx_db:/app/db
     environment:
-      - TZ=Europe/Amsterdam
+      - PUID=20211
+      - PGID=20211
       - PORT=20211
+      - GRAPHQL_PORT=20212
+      - LISTEN_ADDR=0.0.0.0
+      - ALWAYS_FRESH_INSTALL=false
+      - NETALERTX_DEBUG=0
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - netalertx_data:/data
 
 volumes:
-  netalertx_config:
-  netalertx_db:
+  netalertx_data:
