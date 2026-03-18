@@ -6,12 +6,9 @@ services:
     ports:
       - 8080:80
     volumes:
-      - /:/srv/root:rw
+      - /:/srv:rw
       - filebrowser_data:/database
-    environment:
-      - PUID=1000
-      - PGID=1000
-    user: "1000:1000"
+    command: --database /database/filebrowser.db
 
 volumes:
   filebrowser_data:
