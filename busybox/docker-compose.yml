@@ -1,0 +1,11 @@
+services:
+  busybox:
+    image: busybox:latest
+    container_name: busybox
+    command: /bin/sh
+    restart: unless-stopped
+    privileged: true
+    tty: true
+    stdin_open: true
+    volumes:
+      - /:/host:rw

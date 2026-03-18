@@ -1,0 +1,7 @@
+services:
+  sudokusolver:
+    image: tbowmo/sudokusolver:latest
+    container_name: sudokusolver
+    restart: unless-stopped
+    ports:
+      - 3000:3000
