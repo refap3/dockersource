@@ -82,6 +82,10 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 | `wg-easy/` | `ghcr.io/wg-easy/wg-easy` | WireGuard VPN with web UI | 51821 |
 | `filebrowser/` | `filebrowser/filebrowser` | Web UI for browsing and managing files | 8080 |
 
+### First-run notes
+
+- **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
+
 ### Containers requiring secrets
 
 Copy `.env.example` to `.env` and fill in the values before starting:
