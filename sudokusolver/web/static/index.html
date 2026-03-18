@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sudoku Tutor</title>
+  <link rel="stylesheet" href="/static/style.css?v=5">
+</head>
+<body>
+<div id="app">
+  <!-- Toolbar -->
+  <div id="toolbar">
+    <span id="mode-badge">INPUT</span>
+
+    <button class="btn" id="btn-prev" title="Previous step (← / Backspace)">&#x2190; PREV</button>
+    <button class="btn" id="btn-next" title="Next step (Space / →)">NEXT &#x2192;</button>
+    <button class="btn" id="btn-auto" title="Toggle auto-play (A)">&#x25B6; AUTO</button>
+    <button class="btn" id="btn-reset" title="Reset to step 0 (R)">RESET</button>
+
+    <div class="btn-sep"></div>
+
+    <button class="btn" id="btn-cands" title="Toggle candidates (C)">CANDS</button>
+    <button class="btn" id="btn-dark" title="Toggle dark mode (D)">DARK</button>
+
+    <div class="btn-sep"></div>
+
+    <button class="btn" id="btn-hint" title="Progressive hint (H)">HINT</button>
+    <button class="btn" id="btn-play" title="Enter play mode (P)">PLAY</button>
+    <button class="btn" id="btn-input" title="Enter input mode (I)">INPUT</button>
+    <button class="btn" id="btn-create" title="Enter create mode">CREATE</button>
+
+    <div class="btn-sep"></div>
+
+    <button class="btn" id="btn-puzzle" title="Puzzle library">PUZZLE</button>
+    <button class="btn" id="btn-img-upload" title="Import from image (paste or upload)">&#x1F4F7; IMAGE</button>
+    <input type="file" id="img-upload-input" accept="image/*">
+    <button class="btn" id="btn-apikey" title="Set Anthropic API key">API KEY</button>
+
+    <div class="btn-sep"></div>
+
+    <div id="digit-filter-row"></div>
+
+    <!-- Input/Create mode controls (hidden in other modes) -->
+    <div id="input-controls" style="display:none; display:flex; gap:4px; align-items:center;">
+      <button class="btn btn-on" id="btn-input-solve">SOLVE</button>
+      <button class="btn" id="btn-input-cancel">CANCEL</button>
+      <button class="btn danger" id="btn-input-clear">CLEAR ALL</button>
+      <button class="btn" id="btn-undo" title="Undo (Ctrl+Z)">&#x21B6;</button>
+      <button class="btn" id="btn-redo" title="Redo (Ctrl+Y)">&#x21B7;</button>
+    </div>
+
+    <!-- Play mode controls (hidden in other modes) -->
+    <div id="play-controls" style="display:none;">
+      <button class="btn" id="btn-play-mark" title="Toggle mark mode (M)">MARK</button>
+      <button class="btn" id="btn-play-clear-marks" title="Clear all marks (K)">CLR MARKS</button>
+      <button class="btn" id="btn-play-hint" title="Hint (H)">HINT</button>
+      <button class="btn danger" id="btn-play-exit" title="Exit play mode (Esc)">EXIT PLAY</button>
+    </div>
+  </div>
+
+  <!-- Main area -->
+  <div id="main-area">
+    <div id="grid-area">
+      <svg id="grid-svg" width="540" height="540" viewBox="0 0 540 540"
+           tabindex="0" role="grid" aria-label="Sudoku grid"></svg>
+      <div id="timeline-container">
+        <div id="timeline-fill" style="width:0%"></div>
+        <span id="timeline-label">Step 0 / 0</span>
+      </div>
+    </div>
+    <div id="panel">
+      <div class="panel-title" id="panel-title">Ready</div>
+      <div class="panel-tier" id="panel-tier"></div>
+      <div class="panel-body" id="panel-body">Load a puzzle to begin.</div>
+    </div>
+  </div>
+
+  <!-- Status bar -->
+  <div id="status-bar" id="status-bar">Keyboard: Space/→ next  ←/Bksp prev  A auto  C cands  D dark  H hint  P play  I input  1-9 filter  R reset</div>
+</div>
+
+<!-- API key dialog -->
+<dialog id="apikey-dialog">
+  <div class="dialog-header">
+    <span>Anthropic API Key</span>
+    <button class="dialog-close" id="apikey-dialog-close">&#x2715;</button>
+  </div>
+  <div class="dialog-body">
+    <p style="font-size:12px; color:var(--text-muted); margin-bottom:10px;">
+      Required for image/screenshot puzzle import via Claude vision.<br>
+      Stored in your browser only (localStorage). Never sent to the server except during image extraction.
+    </p>
+    <input type="password" id="apikey-input" placeholder="sk-ant-..." autocomplete="off"
+      style="width:100%; padding:7px 10px; font-size:13px; font-family:monospace;
+             border:1px solid var(--border); border-radius:4px;
+             background:var(--bg); color:var(--text);">
+    <div id="apikey-status" style="font-size:11px; margin-top:6px; color:var(--text-muted);"></div>
+  </div>
+  <div class="dialog-footer">
+    <button class="btn danger" id="btn-apikey-clear">Clear</button>
+    <button class="btn btn-on" id="btn-apikey-save">Save</button>
+  </div>
+</dialog>
+
+<!-- Puzzle library dialog -->
+<dialog id="puzzle-dialog">
+  <div class="dialog-header">
+    <span>Puzzle Library</span>
+    <button class="dialog-close" id="puzzle-dialog-close">&#x2715;</button>
+  </div>
+  <div class="dialog-body">
+    <div class="tabs" id="puzzle-tabs"></div>
+    <div class="puzzle-grid" id="puzzle-list"></div>
+  </div>
+</dialog>
+
+<!-- Flash overlay -->
+<div id="flash-overlay" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9999; display:none; align-items:center; justify-content:center;">
+  <div style="background:var(--panel-bg); color:var(--text); border-radius:8px; padding:28px 40px; text-align:center; box-shadow:0 8px 32px rgba(0,0,0,0.4); min-width:260px;">
+    <div style="font-size:28px; margin-bottom:12px;">🔍</div>
+    <div style="font-size:15px; font-weight:700; margin-bottom:6px;" id="flash-title">Extracting puzzle…</div>
+    <div style="font-size:12px; color:var(--text-muted);" id="flash-sub">Sending image to Claude vision API</div>
+    <div style="margin-top:16px;"><span class="spinner" style="border-color:var(--btn); border-top-color:transparent;"></span></div>
+  </div>
+</div>
+
+<script src="/static/app.js?v=5"></script>
+</body>
+</html>
