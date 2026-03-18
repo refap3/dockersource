@@ -7,8 +7,9 @@ services:
       - 8080:80
     volumes:
       - /:/srv:rw
-      - filebrowser_data:/database
-    command: --database /database/filebrowser.db
+      - filebrowser_config:/config
+    environment:
+      - FB_DATABASE=/config/filebrowser.db
 
 volumes:
-  filebrowser_data:
+  filebrowser_config:
