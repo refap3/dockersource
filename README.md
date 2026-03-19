@@ -101,19 +101,26 @@ The `synology/` folder contains Synology-specific versions of the compose files.
 SSH into your NAS and create the data directories:
 
 ```bash
-mkdir -p /volume1/docker/portainer
-mkdir -p /volume1/docker/netalertx
-mkdir -p /volume1/docker/homarr
-mkdir -p /volume1/docker/wg-easy
-mkdir -p /volume1/docker/filebrowser && sudo chmod 777 /volume1/docker/filebrowser
+sudo mkdir -p /volume1/docker/portainer
+sudo mkdir -p /volume1/docker/netalertx
+sudo mkdir -p /volume1/docker/homarr
+sudo mkdir -p /volume1/docker/wg-easy
+sudo mkdir -p /volume1/docker/filebrowser && sudo chmod 777 /volume1/docker/filebrowser
+```
+
+**homarr** requires a `SECRET_ENCRYPTION_KEY` before first start:
+
+```bash
+cd ~/dockersource/synology/homarr
+echo "SECRET_ENCRYPTION_KEY=$(openssl rand -hex 32)" > .env
 ```
 
 Clone the repo and start a container:
 
 ```bash
 git clone https://github.com/refap3/dockersource
-cd dockersource/synology/portainer
-docker compose up -d
+cd dockersource/synology/homarr
+dcud synology/homarr/
 ```
 
 ### Synology container index
