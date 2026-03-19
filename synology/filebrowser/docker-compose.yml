@@ -4,9 +4,10 @@ services:
     container_name: filebrowser
     restart: unless-stopped
     ports:
-      - 8099:80
+      - 8099:8080
     volumes:
       - /volume1:/srv:rw
       - /volume1/docker/filebrowser:/config
     environment:
       - FB_DATABASE=/config/filebrowser.db
+      - FB_PORT=8080
