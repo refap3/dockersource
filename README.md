@@ -105,7 +105,7 @@ mkdir -p /volume1/docker/portainer
 mkdir -p /volume1/docker/netalertx
 mkdir -p /volume1/docker/homarr
 mkdir -p /volume1/docker/wg-easy
-mkdir -p /volume1/docker/filebrowser
+mkdir -p /volume1/docker/filebrowser && sudo chmod 777 /volume1/docker/filebrowser
 ```
 
 Clone the repo and start a container:
@@ -124,9 +124,9 @@ docker compose up -d
 | `synology/netalertx/` | `netalertx/` | Bind mount; check PUID/PGID |
 | `synology/homarr/` | `homarr/` | Bind mount for appdata |
 | `synology/wg-easy/` | `wg-easy/` | Bind mount; requires WireGuard kernel module |
-| `synology/filebrowser/` | `filebrowser/` | Mounts `/volume1` as root |
+| `synology/filebrowser/` | `filebrowser/` | Mounts `/volume1` as root; uses port 8080 internally (Synology Docker blocks port 80 binding) |
 
-> **dozzle, ouroboros, cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is.
+> **dozzle, ouroboros, cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is. Confirmed working: dozzle (`/var/run/docker.sock` path is identical on Synology DSM).
 
 ### wg-easy on Synology
 
