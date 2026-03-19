@@ -80,11 +80,63 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 | `cloudflared/` | `cloudflare/cloudflared` | Cloudflare Tunnel (zero-trust ingress) | — |
 | `twingate-connector/` | `twingate/connector` | Twingate zero-trust network connector | — |
 | `wg-easy/` | `ghcr.io/wg-easy/wg-easy` | WireGuard VPN with web UI | 51821 |
-| `filebrowser/` | `filebrowser/filebrowser` | Web UI for browsing and managing files | 8080 |
+| `filebrowser/` | `filebrowser/filebrowser` | Web UI for browsing and managing files | 8099 |
 
 ### First-run notes
 
 - **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
+
+---
+
+## Synology NAS Variants
+
+The `synology/` folder contains Synology-specific versions of the compose files. The main differences from the Pi versions:
+
+- Named Docker volumes are replaced with bind mounts to `/volume1/docker/<app>/`
+- **filebrowser** mounts `/volume1` instead of `/` so you browse your NAS storage
+- **netalertx** uses Synology's default PUID/PGID (`1026`/`100`) — verify with `id <your_username>` on your NAS
+
+### Setup
+
+SSH into your NAS and create the data directories:
+
+```bash
+mkdir -p /volume1/docker/portainer
+mkdir -p /volume1/docker/netalertx
+mkdir -p /volume1/docker/homarr
+mkdir -p /volume1/docker/wg-easy
+mkdir -p /volume1/docker/filebrowser
+```
+
+Clone the repo and start a container:
+
+```bash
+git clone https://github.com/refap3/dockersource
+cd dockersource/synology/portainer
+docker compose up -d
+```
+
+### Synology container index
+
+| Folder | Same as | Notes |
+|---|---|---|
+| `synology/portainer/` | `portainer/` | Bind mount for data |
+| `synology/netalertx/` | `netalertx/` | Bind mount; check PUID/PGID |
+| `synology/homarr/` | `homarr/` | Bind mount for appdata |
+| `synology/wg-easy/` | `wg-easy/` | Bind mount; requires WireGuard kernel module |
+| `synology/filebrowser/` | `filebrowser/` | Mounts `/volume1` as root |
+
+> **dozzle, ouroboros, cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is.
+
+### wg-easy on Synology
+
+WireGuard requires kernel module support. Verify before deploying:
+
+```bash
+modinfo wireguard
+```
+
+If this errors, wg-easy will not work on your NAS model.
 
 ### Containers requiring secrets
 
