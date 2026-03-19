@@ -1,0 +1,12 @@
+services:
+  filebrowser:
+    image: filebrowser/filebrowser:latest
+    container_name: filebrowser
+    restart: unless-stopped
+    ports:
+      - 8099:80
+    volumes:
+      - /volume1:/srv:rw
+      - /volume1/docker/filebrowser:/config
+    environment:
+      - FB_DATABASE=/config/filebrowser.db
