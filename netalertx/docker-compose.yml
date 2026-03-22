@@ -12,6 +12,11 @@ services:
       - LISTEN_ADDR=0.0.0.0
       - ALWAYS_FRESH_INSTALL=false
       - NETALERTX_DEBUG=0
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - seccomp:unconfined
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - netalertx_data:/data
