@@ -85,6 +85,7 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 ### First-run notes
 
 - **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
+- **netalertx** — on Raspberry Pi, the entrypoint `mounts.py` script fails with exit 126 (`python3: Operation not permitted`) unless `cap_add: [NET_ADMIN, NET_RAW]` and `security_opt: [seccomp:unconfined]` are set. Both are included in the compose file.
 
 ---
 
