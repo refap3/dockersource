@@ -2,6 +2,42 @@
 
 const CATEGORIES = ['unknown','pc','laptop','phone','tablet','router','nas','printer','iot','tv','camera','other'];
 
+// ── Sort state ─────────────────────────────────────────────────────────────
+let _devices = [];
+let _sortCol = 'last_seen';
+let _sortDir = -1;  // -1 = desc, 1 = asc
+
+function sortValue(d, col) {
+  switch (col) {
+    case 'online':      return d.online ? 1 : 0;
+    case 'name':        return (d.name || d.hostname || d.mac).toLowerCase();
+    case 'ip':          return (d.ip || '').split('.').map(n => n.padStart(3,'0')).join('.');
+    case 'first_seen':
+    case 'last_seen':   return d[col] || '';
+    case 'notify_online': return d.notify_online ? 1 : 0;
+    default:            return (d[col] || '').toString().toLowerCase();
+  }
+}
+
+function applySort() {
+  _devices.sort((a, b) => {
+    const av = sortValue(a, _sortCol);
+    const bv = sortValue(b, _sortCol);
+    if (av < bv) return -_sortDir;
+    if (av > bv) return  _sortDir;
+    return 0;
+  });
+}
+
+function updateSortHeaders() {
+  document.querySelectorAll('#panel-devices thead th[data-col]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.col === _sortCol) {
+      th.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
 // ── Tab switching ──────────────────────────────────────────────────────────
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -12,23 +48,42 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   });
 });
 
+// ── Column header click ────────────────────────────────────────────────────
+document.querySelectorAll('#panel-devices thead th[data-col]').forEach(th => {
+  th.addEventListener('click', () => {
+    if (_sortCol === th.dataset.col) {
+      _sortDir *= -1;
+    } else {
+      _sortCol = th.dataset.col;
+      _sortDir = 1;
+    }
+    applySort();
+    updateSortHeaders();
+    const tbody = document.getElementById('devices-tbody');
+    tbody.innerHTML = _devices.map(d => renderDevice(d)).join('');
+    attachDeviceHandlers();
+  });
+});
+
 // ── Devices ────────────────────────────────────────────────────────────────
 async function loadDevices() {
   const tbody = document.getElementById('devices-tbody');
   try {
     const res = await fetch('/api/devices');
-    const devices = await res.json();
+    _devices = await res.json();
 
-    const online = devices.filter(d => d.online).length;
+    const online = _devices.filter(d => d.online).length;
     document.getElementById('device-count').textContent =
-      `${devices.length} devices · ${online} online`;
+      `${_devices.length} devices · ${online} online`;
 
-    if (devices.length === 0) {
+    if (_devices.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="empty">No devices discovered yet. Click Scan Now.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = devices.map(d => renderDevice(d)).join('');
+    applySort();
+    updateSortHeaders();
+    tbody.innerHTML = _devices.map(d => renderDevice(d)).join('');
     attachDeviceHandlers();
   } catch (e) {
     tbody.innerHTML = '<tr><td colspan="9" class="empty">Failed to load devices.</td></tr>';

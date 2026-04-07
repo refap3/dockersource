@@ -78,7 +78,19 @@ thead th {
   font-size: 11px;
   letter-spacing: .5px;
   border-bottom: 1px solid #2d3148;
+  white-space: nowrap;
 }
+
+thead th[data-col] {
+  cursor: pointer;
+  user-select: none;
+}
+thead th[data-col]:hover { color: #94a3b8; }
+thead th[data-col]::after { content: ''; margin-left: 5px; }
+thead th.sort-asc::after  { content: '▲'; color: #7dd3fc; }
+thead th.sort-desc::after { content: '▼'; color: #7dd3fc; }
+thead th.sort-asc,
+thead th.sort-desc { color: #7dd3fc; }
 
 tbody tr { border-bottom: 1px solid #1e2235; transition: background .1s; }
 tbody tr:hover { background: #1a1d2e; }
