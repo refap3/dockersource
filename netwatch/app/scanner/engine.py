@@ -150,25 +150,32 @@ async def _process_device(info: DeviceInfo | ArpEvent, db: Session):
 
 
 async def run_vendor_backfill():
-    """On startup, re-lookup vendor/category for any devices that have none."""
+    """On startup, fill missing vendors and re-classify all auto-assigned categories."""
     async with _db_lock:
         db = SessionLocal()
         try:
-            missing = (
-                db.query(Device)
-                .filter((Device.vendor == None) | (Device.vendor == ""))  # noqa: E711
-                .all()
-            )
-            if not missing:
-                return
-            log.info("Backfilling vendor for %d devices with no vendor info", len(missing))
-            for device in missing:
-                vendor = await get_vendor(device.mac)
-                if vendor:
-                    device.vendor = vendor
-                    if device.category_source == "auto":
-                        device.category = classify(vendor, device.hostname)
-                    log.info("Backfilled %s -> %s [%s]", device.mac, vendor, device.category)
+            all_devices = db.query(Device).all()
+            updated = 0
+            for device in all_devices:
+                # Fill missing vendor
+                if not device.vendor:
+                    vendor = await get_vendor(device.mac)
+                    if vendor:
+                        device.vendor = vendor
+                        log.info("Backfilled vendor %s -> %s", device.mac, vendor)
+                    else:
+                        continue
+
+                # Re-classify if auto-assigned (picks up new category hints)
+                if device.category_source == "auto":
+                    new_cat = classify(device.vendor, device.hostname)
+                    if new_cat != device.category:
+                        log.info("Re-classified %s [%s -> %s]", device.mac, device.category, new_cat)
+                        device.category = new_cat
+                        updated += 1
+
+            if updated:
+                log.info("Backfill re-classified %d devices", updated)
             db.commit()
         finally:
             db.close()
