@@ -19,6 +19,7 @@ class Device(Base):
     known = Column(Boolean, default=False)
     notify_online = Column(Boolean, default=True)
     notify_offline = Column(Boolean, default=False)
+    known_ips = Column(Text, default="[]")   # JSON list of all IPs ever seen for this device
 
 
 class Event(Base):

@@ -63,6 +63,7 @@ async def _process_device(info: DeviceInfo | ArpEvent, db: Session):
             known=False,
             notify_online=True,
             notify_offline=False,
+            known_ips=json.dumps([ip]),
         )
 
         # Apply static config overrides
@@ -126,15 +127,23 @@ async def _process_device(info: DeviceInfo | ArpEvent, db: Session):
             old_ip = existing.ip
             existing.ip = ip
             changed = True
-            ev = Event(
-                mac=mac,
-                event_type="ip_changed",
-                detail=json.dumps({"old_ip": old_ip, "new_ip": ip}),
-                ts=now,
-                notified=True,
-            )
-            db.add(ev)
-            log.info("IP changed: %s %s → %s", mac, old_ip, ip)
+            # Only emit ip_changed if this IP has never been seen for this device
+            known_ips = json.loads(existing.known_ips or "[]")
+            if ip not in known_ips:
+                known_ips.append(ip)
+                existing.known_ips = json.dumps(known_ips)
+                ev = Event(
+                    mac=mac,
+                    event_type="ip_changed",
+                    detail=json.dumps({"old_ip": old_ip, "new_ip": ip}),
+                    ts=now,
+                    notified=True,
+                )
+                db.add(ev)
+                log.info("IP changed (new): %s %s → %s", mac, old_ip, ip)
+            else:
+                existing.known_ips = json.dumps(known_ips)
+                log.debug("IP oscillation suppressed: %s %s → %s", mac, old_ip, ip)
 
         if changed or True:
             db.commit()
