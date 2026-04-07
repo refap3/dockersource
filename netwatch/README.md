@@ -11,6 +11,7 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - Web dashboard on port 8095 with sortable columns in both tables
 - Event log filterable by event type and MAC address
 - Click any MAC address to cross-navigate between Devices and Events tabs
+- Click any IP address to ping that host immediately and update its online status
 - Notifications via webhook (ntfy, Gotify, HA), Telegram, or SMTP
 
 ## Setup
