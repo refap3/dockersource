@@ -52,3 +52,35 @@ async def manual_scan():
     from app.scanner.engine import trigger_sweep
     count = await trigger_sweep()
     return {"found": count}
+
+
+@router.post("/api/ping/{ip}")
+async def ping_host(ip: str, db: Session = Depends(get_db)):
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+    import nmap
+
+    loop = asyncio.get_event_loop()
+
+    def do_ping():
+        nm = nmap.PortScanner()
+        nm.scan(hosts=ip, arguments="-sn --host-timeout 5s")
+        up = ip in nm.all_hosts() and nm[ip].state() == "up"
+        return up
+
+    up = await loop.run_in_executor(ThreadPoolExecutor(max_workers=1), do_ping)
+
+    device = db.query(Device).filter(Device.ip == ip).order_by(Device.last_seen.desc()).first()
+    if device:
+        now = datetime.utcnow()
+        if up:
+            device.online = True
+            device.last_seen = now
+        else:
+            device.online = False
+        db.commit()
+        db.refresh(device)
+        return {"online": up, "mac": device.mac, "ip": ip, "name": device.name, "hostname": device.hostname}
+
+    return {"online": up, "mac": None, "ip": ip, "name": None, "hostname": None}

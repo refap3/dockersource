@@ -103,6 +103,9 @@ function renderDevice(d) {
     `<option value="${c}" ${c === d.category ? 'selected' : ''}>${c}</option>`
   ).join('');
   const knownClass = d.known ? 'active' : '';
+  const ipCell = d.ip
+    ? `<button class="ip-link" title="Ping ${d.ip}" data-ip="${d.ip}">${d.ip}</button>`
+    : '—';
   return `
   <tr data-mac="${d.mac}">
     <td><span class="dot ${dotClass}"></span>${d.online ? 'online' : 'offline'}</td>
@@ -113,7 +116,7 @@ function renderDevice(d) {
       </div>
     </td>
     <td><button class="mac-link" title="Show events for this device" data-mac="${d.mac}">${d.mac}</button></td>
-    <td class="ip-text">${d.ip || '—'}</td>
+    <td class="ip-text">${ipCell}</td>
     <td>${escHtml(d.vendor || '—')}</td>
     <td><select class="cat-select" data-mac="${d.mac}">${catOptions}</select></td>
     <td>${fmtDate(d.first_seen)}</td>
@@ -150,6 +153,10 @@ function attachDeviceHandlers() {
   // MAC → events cross-link
   document.querySelectorAll('#devices-tbody .mac-link').forEach(btn => {
     btn.addEventListener('click', () => goToEvents(btn.dataset.mac));
+  });
+  // IP → ping
+  document.querySelectorAll('#devices-tbody .ip-link').forEach(btn => {
+    btn.addEventListener('click', () => pingIp(btn.dataset.ip, btn));
   });
 }
 
@@ -215,6 +222,10 @@ function renderEvents() {
   // MAC → device cross-link
   tbody.querySelectorAll('.mac-link').forEach(btn => {
     btn.addEventListener('click', () => goToDevice(btn.dataset.mac));
+  });
+  // IP ping links in detail column
+  tbody.querySelectorAll('.ev-ip-link').forEach(btn => {
+    btn.addEventListener('click', () => pingIp(btn.dataset.ip, btn));
   });
 }
 
@@ -283,6 +294,38 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
   }
 });
 
+// ── Ping ───────────────────────────────────────────────────────────────────
+const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
+
+async function pingIp(ip, btn) {
+  const orig = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = '…';
+  try {
+    const res = await fetch(`/api/ping/${encodeURIComponent(ip)}`, { method: 'POST' });
+    const data = await res.json();
+    btn.textContent = orig;
+    btn.classList.add(data.online ? 'ping-up' : 'ping-down');
+    btn.title = data.online ? `${ip} is UP` : `${ip} is DOWN`;
+    setTimeout(() => btn.classList.remove('ping-up', 'ping-down'), 3000);
+    // Refresh the device row if it's in our table
+    if (data.mac) {
+      const idx = _devices.findIndex(d => d.mac === data.mac);
+      if (idx !== -1) {
+        _devices[idx].online = data.online;
+        if (data.online) _devices[idx].last_seen = new Date().toISOString();
+        const tbody = document.getElementById('devices-tbody');
+        tbody.innerHTML = _devices.map(renderDevice).join('');
+        attachDeviceHandlers();
+      }
+    }
+  } catch {
+    btn.textContent = orig;
+  } finally {
+    btn.disabled = false;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────
 function fmtDate(iso) {
   if (!iso) return '—';
@@ -293,7 +336,12 @@ function fmtDate(iso) {
 function fmtDetail(json) {
   try {
     const obj = JSON.parse(json || '{}');
-    return Object.entries(obj).map(([k,v]) => `${k}: ${v}`).join(', ') || '—';
+    return Object.entries(obj).map(([k, v]) => {
+      const val = IP_RE.test(String(v))
+        ? `<button class="ip-link ev-ip-link" data-ip="${v}" title="Ping ${v}">${v}</button>`
+        : escHtml(String(v));
+      return `${escHtml(k)}: ${val}`;
+    }).join(', ') || '—';
   } catch { return json || '—'; }
 }
 
