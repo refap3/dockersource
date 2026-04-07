@@ -28,13 +28,26 @@ bash install.sh            # from netwatch/
 
 The installer creates `config.yml` from the example and stops, prompting you to set your network CIDR and interface. Re-run after editing to build and start the container.
 
-**Update:**
+**Update an existing installation:**
+
+SSH into the host, then run from the `netwatch/` directory:
 
 ```bash
-bash update.sh   # from netwatch/ — pulls latest and rebuilds
+bash update.sh
 ```
 
-**Manual steps:**
+This pulls the latest code from GitHub and rebuilds the container. Your `config.yml` and device database are preserved — `config.yml` is gitignored and the database lives in a named Docker volume.
+
+Manually:
+
+```bash
+cd ~/dockersource
+git pull
+cd netwatch
+docker compose up -d --build
+```
+
+**Fresh install — manual steps:**
 
 ```bash
 cp config.yml.example config.yml

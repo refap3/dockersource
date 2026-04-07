@@ -83,6 +83,28 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 | `wg-easy/` | `ghcr.io/wg-easy/wg-easy` | WireGuard VPN with web UI | 51821 |
 | `filebrowser/` | `filebrowser/filebrowser` | Web UI for browsing and managing files | 8099 |
 
+### Updating containers
+
+SSH into the host running the container, then pull the latest code and restart:
+
+```bash
+cd ~/dockersource
+git pull
+cd <service-name>
+docker compose up -d --build   # build-from-source services (netwatch, sudokusolver)
+# or
+docker compose pull && docker compose up -d   # image-based services (all others)
+```
+
+For **netwatch** and **sudokusolver** specifically, `update.sh` handles this in one step:
+
+```bash
+cd ~/dockersource/<service-name>
+bash update.sh
+```
+
+Your config files (`.env`, `config.yml`) and data volumes are never touched by an update.
+
 ### First-run notes
 
 - **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
