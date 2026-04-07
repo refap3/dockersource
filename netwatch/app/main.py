@@ -23,7 +23,9 @@ async def lifespan(app: FastAPI):
     cfg = get_config()
     log.info("netwatch starting — network=%s interface=%s", cfg.network, cfg.interface)
 
-    from app.scanner.engine import run_sweep_loop, run_offline_checker, run_arp_sniffer
+    from app.scanner.engine import run_sweep_loop, run_offline_checker, run_arp_sniffer, run_vendor_backfill
+
+    await run_vendor_backfill()
 
     tasks = [
         asyncio.create_task(run_sweep_loop(), name="sweep"),

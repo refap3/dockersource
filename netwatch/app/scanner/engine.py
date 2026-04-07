@@ -140,6 +140,31 @@ async def _process_device(info: DeviceInfo | ArpEvent, db: Session):
             db.commit()
 
 
+async def run_vendor_backfill():
+    """On startup, re-lookup vendor/category for any devices that have none."""
+    async with _db_lock:
+        db = SessionLocal()
+        try:
+            missing = (
+                db.query(Device)
+                .filter((Device.vendor == None) | (Device.vendor == ""))  # noqa: E711
+                .all()
+            )
+            if not missing:
+                return
+            log.info("Backfilling vendor for %d devices with no vendor info", len(missing))
+            for device in missing:
+                vendor = await get_vendor(device.mac)
+                if vendor:
+                    device.vendor = vendor
+                    if device.category_source == "auto":
+                        device.category = classify(vendor, device.hostname)
+                    log.info("Backfilled %s -> %s [%s]", device.mac, vendor, device.category)
+            db.commit()
+        finally:
+            db.close()
+
+
 async def run_sweep_loop():
     cfg = get_config()
     loop = asyncio.get_event_loop()
