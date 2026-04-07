@@ -412,8 +412,9 @@ document.getElementById('import-file').addEventListener('change', async function
     form.append('file', file);
     const res = await fetch('/api/import', { method: 'POST', body: form });
     if (!res.ok) {
-      const err = await res.json();
-      alert('Import failed: ' + (err.detail || res.statusText));
+      let detail = res.statusText;
+      try { const err = await res.json(); detail = err.detail || detail; } catch { detail = await res.text().catch(() => detail); }
+      alert('Import failed: ' + detail);
       return;
     }
     const data = await res.json();
