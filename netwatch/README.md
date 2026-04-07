@@ -13,21 +13,40 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 
 ## Setup
 
+**One-liner (no repo needed):**
+
 ```bash
-# 1. Copy and edit config
-cp config.yml.example config.yml
-nano config.yml   # set network CIDR and interface at minimum
-
-# 2. Build and start
-docker compose up -d --build
-
-# 3. Open dashboard
-http://<host-ip>:8095
+curl -fsSL https://raw.githubusercontent.com/refap3/dockersource/main/netwatch/install.sh | bash
 ```
+
+**From the repo:**
+
+```bash
+bash netwatch/install.sh   # from repo root
+bash install.sh            # from netwatch/
+```
+
+The installer creates `config.yml` from the example and stops, prompting you to set your network CIDR and interface. Re-run after editing to build and start the container.
+
+**Update:**
+
+```bash
+bash update.sh   # from netwatch/ — pulls latest and rebuilds
+```
+
+**Manual steps:**
+
+```bash
+cp config.yml.example config.yml
+nano config.yml              # set scanner.network and scanner.interface
+docker compose up -d --build
+```
+
+Dashboard: `http://<host-ip>:8095`
 
 Requires `network_mode: host` — runs best on a Linux host (Raspberry Pi or Synology).
 
-> `config.yml` is not committed (gitignored like `.env`). `config.yml.example` is the template.
+> `config.yml` is gitignored (like `.env`). `config.yml.example` is the committed template.
 
 ## Configuration (`config.yml`)
 
