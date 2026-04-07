@@ -375,6 +375,66 @@ function escHtml(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+// ── Export / Import ────────────────────────────────────────────────────────
+document.getElementById('export-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('export-btn');
+  btn.disabled = true;
+  btn.textContent = 'Exporting…';
+  try {
+    const res = await fetch('/api/export');
+    const cd = res.headers.get('Content-Disposition') || '';
+    const match = cd.match(/filename=([^\s;]+)/);
+    const filename = match ? match[1] : 'netwatch_export.json';
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Export DB';
+  }
+});
+
+document.getElementById('import-btn').addEventListener('click', () => {
+  document.getElementById('import-file').click();
+});
+
+document.getElementById('import-file').addEventListener('change', async function() {
+  const file = this.files[0];
+  if (!file) return;
+  if (!confirm(`Import "${file.name}"? This will DELETE all current devices and history.`)) {
+    this.value = '';
+    return;
+  }
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
+  try {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch('/api/import', { method: 'POST', body: form });
+    if (!res.ok) {
+      const err = await res.json();
+      alert('Import failed: ' + (err.detail || res.statusText));
+      return;
+    }
+    const data = await res.json();
+    btn.textContent = `Imported (${data.imported_devices} devices)`;
+    await loadDevices();
+    await loadEvents();
+    setTimeout(() => { btn.textContent = 'Import DB'; }, 4000);
+  } catch (e) {
+    alert('Import error: ' + e.message);
+    btn.textContent = 'Import DB';
+  } finally {
+    btn.disabled = false;
+    this.value = '';
+  }
+});
+
 // ── Auto-refresh ───────────────────────────────────────────────────────────
 loadDevices();
 loadEvents();

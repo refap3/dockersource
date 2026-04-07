@@ -15,6 +15,7 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - Per-device note field (up to 40 characters, inline editable in the devices table)
 - **Check Status** button pings all known devices concurrently and updates online/offline without waiting for the next sweep
 - Notifications via webhook (ntfy, Gotify, HA), Telegram, or SMTP
+- **Export / Import** — download the full device catalog and event history as a JSON file; upload it to another instance to transfer all definitions (wipes the target before importing)
 
 ## Setup
 
@@ -117,6 +118,12 @@ notifications:
 Auto-detected from vendor OUI lookup + hostname hints. Can be overridden in the UI or `config.yml`.
 
 Available: `router`, `pc`, `laptop`, `phone`, `tablet`, `nas`, `printer`, `iot`, `tv`, `streamer`, `camera`, `other`, `unknown`
+
+## Export / Import
+
+Use the **Export DB** button in the toolbar to download a JSON snapshot of all devices and events. Use **Import DB** on another instance to upload that file — it will replace all existing data.
+
+This is the recommended way to copy device definitions and history between Pi instances.
 
 ## Data
 
