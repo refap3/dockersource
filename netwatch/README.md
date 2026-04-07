@@ -11,20 +11,23 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - Web dashboard on port 8095
 - Notifications via webhook (ntfy, Gotify, HA), Telegram, or SMTP
 
-## Deployment (Raspberry Pi)
+## Setup
 
 ```bash
-# 1. Edit config before starting
-nano config.yml
+# 1. Copy and edit config
+cp config.yml.example config.yml
+nano config.yml   # set network CIDR and interface at minimum
 
 # 2. Build and start
 docker compose up -d --build
 
 # 3. Open dashboard
-http://<pi-ip>:8095
+http://<host-ip>:8095
 ```
 
 Requires `network_mode: host` — runs best on a Linux host (Raspberry Pi or Synology).
+
+> `config.yml` is not committed (gitignored like `.env`). `config.yml.example` is the template.
 
 ## Configuration (`config.yml`)
 

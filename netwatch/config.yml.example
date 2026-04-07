@@ -1,0 +1,47 @@
+scanner:
+  network: "192.168.1.0/24"      # CIDR of your LAN to scan
+  interface: "eth0"               # Network interface for ARP sniffing (eth0, wlan0, etc.)
+  interval_minutes: 5             # How often to run a full nmap sweep
+  offline_threshold_minutes: 15   # Minutes of silence before a device is marked offline
+
+notifications:
+  webhook:
+    enabled: false
+    url: "https://ntfy.sh/your-topic"   # ntfy, Gotify, Home Assistant, n8n, etc.
+    method: POST
+    headers: {}
+    # headers:
+    #   Authorization: "Bearer your-token"
+
+  telegram:
+    enabled: false
+    bot_token: ""      # Get from @BotFather
+    chat_id: ""        # Your chat or group ID
+
+  smtp:
+    enabled: false
+    host: "smtp.gmail.com"
+    port: 587
+    username: ""
+    password: ""
+    from_addr: "netwatch@home"
+    to_addr: "admin@home"
+
+alarms:
+  new_device: true             # Alert when an unknown MAC joins the network
+  known_device_online: true    # Alert when a known device powers on
+  known_device_offline: false  # Alert when a known device goes offline (noisy for phones/laptops)
+
+# Static device definitions — merged with the database on startup.
+# Overrides auto-detected values and survives container rebuilds.
+# known_devices:
+#   "aa:bb:cc:dd:ee:ff":
+#     name: "Router"
+#     category: "router"
+#     notify_online: false
+#     notify_offline: true
+#   "11:22:33:44:55:66":
+#     name: "Synology NAS"
+#     category: "nas"
+#     notify_offline: true
+known_devices: {}

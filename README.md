@@ -155,3 +155,9 @@ Copy `.env.example` to `.env` and fill in the values before starting:
 - `sudokusolver/` — `ANTHROPIC_API_KEY`
 - `cloudflared/` — `TUNNEL_TOKEN` (from Cloudflare Zero Trust dashboard)
 - `twingate-connector/` — `TWINGATE_NETWORK`, `TWINGATE_ACCESS_TOKEN`, `TWINGATE_REFRESH_TOKEN`
+
+### Containers requiring config files
+
+Copy the example and edit before starting:
+
+- `netwatch/` — `cp config.yml.example config.yml` then set `scanner.network` and `scanner.interface`
