@@ -1,4 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+import json
+from datetime import datetime
+
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -131,3 +135,63 @@ async def ping_host(ip: str, db: Session = Depends(get_db)):
         return {"online": up, "mac": device.mac, "ip": ip, "name": device.name, "hostname": device.hostname}
 
     return {"online": up, "mac": None, "ip": ip, "name": None, "hostname": None}
+
+
+@router.get("/api/export")
+def export_db(db: Session = Depends(get_db)):
+    """Export all devices and events as a JSON file download."""
+    def _ser(obj):
+        if isinstance(obj, datetime):
+            return obj.isoformat()
+        raise TypeError
+
+    devices = [
+        {c.name: getattr(d, c.name) for c in Device.__table__.columns}
+        for d in db.query(Device).all()
+    ]
+    events = [
+        {c.name: getattr(e, c.name) for c in Event.__table__.columns}
+        for e in db.query(Event).order_by(Event.ts.asc()).all()
+    ]
+    payload = json.dumps(
+        {"exported_at": datetime.utcnow().isoformat(), "devices": devices, "events": events},
+        default=_ser,
+        indent=2,
+    )
+    ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    return JSONResponse(
+        content=json.loads(payload),
+        headers={"Content-Disposition": f"attachment; filename=netwatch_{ts}.json"},
+    )
+
+
+@router.post("/api/import")
+async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db)):
+    """Replace all devices and events with the contents of an uploaded JSON export."""
+    raw = await file.read()
+    try:
+        data = json.loads(raw)
+    except Exception:
+        raise HTTPException(status_code=400, detail="Invalid JSON file")
+
+    if "devices" not in data or "events" not in data:
+        raise HTTPException(status_code=400, detail="File missing 'devices' or 'events' keys")
+
+    # Wipe existing data
+    db.query(Event).delete()
+    db.query(Device).delete()
+    db.commit()
+
+    device_cols = {c.name for c in Device.__table__.columns}
+    event_cols  = {c.name for c in Event.__table__.columns}
+
+    for row in data["devices"]:
+        filtered = {k: v for k, v in row.items() if k in device_cols}
+        db.add(Device(**filtered))
+
+    for row in data["events"]:
+        filtered = {k: v for k, v in row.items() if k in event_cols}
+        db.add(Event(**filtered))
+
+    db.commit()
+    return {"imported_devices": len(data["devices"]), "imported_events": len(data["events"])}
