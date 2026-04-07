@@ -8,7 +8,9 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - Device catalog with categories (router, pc, phone, iot, nas, printer, …)
 - New device alerts
 - Power-on / power-off alarms per device
-- Web dashboard on port 8095
+- Web dashboard on port 8095 with sortable columns in both tables
+- Event log filterable by event type and MAC address
+- Click any MAC address to cross-navigate between Devices and Events tabs
 - Notifications via webhook (ntfy, Gotify, HA), Telegram, or SMTP
 
 ## Setup

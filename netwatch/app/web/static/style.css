@@ -144,6 +144,48 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
 .mac-text { font-family: monospace; color: #94a3b8; font-size: 12px; }
 .ip-text  { font-family: monospace; }
 
+.mac-link {
+  font-family: monospace;
+  font-size: 12px;
+  color: #7dd3fc;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.mac-link:hover { color: #bae6fd; }
+
+.filter-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 0 14px;
+}
+.filter-input {
+  background: #1e2235;
+  border: 1px solid #2d3148;
+  color: #e2e8f0;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-family: monospace;
+  width: 180px;
+  outline: none;
+}
+.filter-input:focus { border-color: #3b82f6; }
+.filter-count { font-size: 12px; color: #475569; }
+
+.btn-sm { background: #1e2235; color: #94a3b8; border: 1px solid #2d3148; }
+.btn-sm:hover { color: #e2e8f0; }
+
+@keyframes highlight-fade {
+  0%   { background: #1e3a5f; }
+  100% { background: transparent; }
+}
+.row-highlight { animation: highlight-fade 2s ease-out forwards; }
+
 .spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid #3b82f6; border-top-color: transparent; border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 

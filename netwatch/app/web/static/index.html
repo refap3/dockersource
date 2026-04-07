@@ -49,6 +49,18 @@
 
   <!-- Events panel -->
   <div class="tab-panel" id="panel-events">
+    <div class="filter-bar">
+      <select id="ev-filter-type" class="cat-select">
+        <option value="">All event types</option>
+        <option value="new_device">new device</option>
+        <option value="came_online">came online</option>
+        <option value="went_offline">went offline</option>
+        <option value="ip_changed">ip changed</option>
+      </select>
+      <input id="ev-filter-mac" class="filter-input" type="text" placeholder="Filter by MAC…" spellcheck="false" />
+      <button class="btn btn-sm" id="ev-filter-clear">Clear</button>
+      <span class="filter-count" id="ev-filter-count"></span>
+    </div>
     <table>
       <thead>
         <tr>

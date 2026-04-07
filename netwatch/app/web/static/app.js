@@ -2,20 +2,50 @@
 
 const CATEGORIES = ['unknown','pc','laptop','phone','tablet','router','nas','printer','iot','tv','camera','other'];
 
-// ── Sort state ─────────────────────────────────────────────────────────────
+// ── Tab switching ──────────────────────────────────────────────────────────
+function switchToTab(name) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + name));
+}
+
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchToTab(btn.dataset.tab));
+});
+
+// ── Cross-tab navigation ───────────────────────────────────────────────────
+function goToDevice(mac) {
+  switchToTab('devices');
+  // Wait one frame for the panel to become visible before scrolling
+  requestAnimationFrame(() => {
+    const row = document.querySelector(`#devices-tbody tr[data-mac="${mac}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    row.classList.add('row-highlight');
+    setTimeout(() => row.classList.remove('row-highlight'), 2000);
+  });
+}
+
+function goToEvents(mac) {
+  document.getElementById('ev-filter-mac').value = mac;
+  _evFilterMac = mac.toLowerCase();
+  switchToTab('events');
+  renderEvents();
+}
+
+// ── Sort state — devices ───────────────────────────────────────────────────
 let _devices = [];
 let _sortCol = 'last_seen';
-let _sortDir = -1;  // -1 = desc, 1 = asc
+let _sortDir = -1;
 
 function sortValue(d, col) {
   switch (col) {
-    case 'online':      return d.online ? 1 : 0;
-    case 'name':        return (d.name || d.hostname || d.mac).toLowerCase();
-    case 'ip':          return (d.ip || '').split('.').map(n => n.padStart(3,'0')).join('.');
+    case 'online':        return d.online ? 1 : 0;
+    case 'name':          return (d.name || d.hostname || d.mac).toLowerCase();
+    case 'ip':            return (d.ip || '').split('.').map(n => n.padStart(3,'0')).join('.');
     case 'first_seen':
-    case 'last_seen':   return d[col] || '';
+    case 'last_seen':     return d[col] || '';
     case 'notify_online': return d.notify_online ? 1 : 0;
-    default:            return (d[col] || '').toString().toLowerCase();
+    default:              return (d[col] || '').toString().toLowerCase();
   }
 }
 
@@ -32,35 +62,16 @@ function applySort() {
 function updateSortHeaders() {
   document.querySelectorAll('#panel-devices thead th[data-col]').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
-    if (th.dataset.col === _sortCol) {
-      th.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
-    }
+    if (th.dataset.col === _sortCol) th.classList.add(_sortDir === 1 ? 'sort-asc' : 'sort-desc');
   });
 }
 
-// ── Tab switching ──────────────────────────────────────────────────────────
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
-  });
-});
-
-// ── Column header click ────────────────────────────────────────────────────
 document.querySelectorAll('#panel-devices thead th[data-col]').forEach(th => {
   th.addEventListener('click', () => {
-    if (_sortCol === th.dataset.col) {
-      _sortDir *= -1;
-    } else {
-      _sortCol = th.dataset.col;
-      _sortDir = 1;
-    }
+    if (_sortCol === th.dataset.col) { _sortDir *= -1; } else { _sortCol = th.dataset.col; _sortDir = 1; }
     applySort();
     updateSortHeaders();
-    const tbody = document.getElementById('devices-tbody');
-    tbody.innerHTML = _devices.map(d => renderDevice(d)).join('');
+    document.getElementById('devices-tbody').innerHTML = _devices.map(renderDevice).join('');
     attachDeviceHandlers();
   });
 });
@@ -71,21 +82,17 @@ async function loadDevices() {
   try {
     const res = await fetch('/api/devices');
     _devices = await res.json();
-
     const online = _devices.filter(d => d.online).length;
-    document.getElementById('device-count').textContent =
-      `${_devices.length} devices · ${online} online`;
-
+    document.getElementById('device-count').textContent = `${_devices.length} devices · ${online} online`;
     if (_devices.length === 0) {
       tbody.innerHTML = '<tr><td colspan="9" class="empty">No devices discovered yet. Click Scan Now.</td></tr>';
       return;
     }
-
     applySort();
     updateSortHeaders();
-    tbody.innerHTML = _devices.map(d => renderDevice(d)).join('');
+    tbody.innerHTML = _devices.map(renderDevice).join('');
     attachDeviceHandlers();
-  } catch (e) {
+  } catch {
     tbody.innerHTML = '<tr><td colspan="9" class="empty">Failed to load devices.</td></tr>';
   }
 }
@@ -105,7 +112,7 @@ function renderDevice(d) {
         <input class="name-input" data-mac="${d.mac}" value="${escHtml(d.name || d.hostname || '')}" placeholder="${escHtml(d.hostname || d.mac)}" />
       </div>
     </td>
-    <td class="mac-text">${d.mac}</td>
+    <td><button class="mac-link" title="Show events for this device" data-mac="${d.mac}">${d.mac}</button></td>
     <td class="ip-text">${d.ip || '—'}</td>
     <td>${escHtml(d.vendor || '—')}</td>
     <td><select class="cat-select" data-mac="${d.mac}">${catOptions}</select></td>
@@ -119,16 +126,13 @@ function renderDevice(d) {
 }
 
 function attachDeviceHandlers() {
-  // Category change
   document.querySelectorAll('.cat-select').forEach(sel => {
     sel.addEventListener('change', () => patchDevice(sel.dataset.mac, { category: sel.value }));
   });
-  // Name edit (on blur)
   document.querySelectorAll('.name-input').forEach(inp => {
     inp.addEventListener('blur', () => patchDevice(inp.dataset.mac, { name: inp.value }));
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
   });
-  // Known toggle
   document.querySelectorAll('.known-toggle').forEach(btn => {
     btn.addEventListener('click', () => {
       const newVal = btn.dataset.known !== 'true';
@@ -137,12 +141,15 @@ function attachDeviceHandlers() {
       patchDevice(btn.dataset.mac, { known: newVal });
     });
   });
-  // Notify checkboxes
   document.querySelectorAll('.chk-online').forEach(chk => {
     chk.addEventListener('change', () => patchDevice(chk.dataset.mac, { notify_online: chk.checked }));
   });
   document.querySelectorAll('.chk-offline').forEach(chk => {
     chk.addEventListener('change', () => patchDevice(chk.dataset.mac, { notify_offline: chk.checked }));
+  });
+  // MAC → events cross-link
+  document.querySelectorAll('#devices-tbody .mac-link').forEach(btn => {
+    btn.addEventListener('click', () => goToEvents(btn.dataset.mac));
   });
 }
 
@@ -154,10 +161,20 @@ async function patchDevice(mac, update) {
   });
 }
 
-// ── Events ─────────────────────────────────────────────────────────────────
+// ── Events — sort + filter state ──────────────────────────────────────────
 let _events = [];
 let _evSortCol = 'ts';
-let _evSortDir = -1;  // -1 = desc (newest first)
+let _evSortDir = -1;
+let _evFilterType = '';
+let _evFilterMac  = '';
+
+function filteredEvents() {
+  return _events.filter(e => {
+    if (_evFilterType && e.event_type !== _evFilterType) return false;
+    if (_evFilterMac  && !e.mac.toLowerCase().includes(_evFilterMac)) return false;
+    return true;
+  });
+}
 
 function applyEvSort() {
   _events.sort((a, b) => {
@@ -172,35 +189,61 @@ function applyEvSort() {
 function updateEvSortHeaders() {
   document.querySelectorAll('#panel-events thead th[data-col-ev]').forEach(th => {
     th.classList.remove('sort-asc', 'sort-desc');
-    if (th.dataset.colEv === _evSortCol) {
-      th.classList.add(_evSortDir === 1 ? 'sort-asc' : 'sort-desc');
-    }
+    if (th.dataset.colEv === _evSortCol) th.classList.add(_evSortDir === 1 ? 'sort-asc' : 'sort-desc');
   });
 }
 
 function renderEvents() {
   const tbody = document.getElementById('events-tbody');
-  tbody.innerHTML = _events.map(e => `
+  const visible = filteredEvents();
+  const total = _events.length;
+  document.getElementById('ev-filter-count').textContent =
+    (visible.length < total) ? `${visible.length} of ${total}` : `${total}`;
+
+  if (visible.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty">No matching events.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = visible.map(e => `
     <tr>
       <td>${fmtDate(e.ts)}</td>
-      <td class="mac-text">${e.mac}</td>
-      <td><span class="badge badge-${e.event_type}">${e.event_type.replace('_',' ')}</span></td>
+      <td><button class="mac-link" title="Go to device" data-mac="${e.mac}">${e.mac}</button></td>
+      <td><span class="badge badge-${e.event_type}">${e.event_type.replace(/_/g,' ')}</span></td>
       <td>${fmtDetail(e.detail)}</td>
     </tr>`).join('');
+
+  // MAC → device cross-link
+  tbody.querySelectorAll('.mac-link').forEach(btn => {
+    btn.addEventListener('click', () => goToDevice(btn.dataset.mac));
+  });
 }
 
 document.querySelectorAll('#panel-events thead th[data-col-ev]').forEach(th => {
   th.addEventListener('click', () => {
-    if (_evSortCol === th.dataset.colEv) {
-      _evSortDir *= -1;
-    } else {
-      _evSortCol = th.dataset.colEv;
-      _evSortDir = 1;
-    }
+    if (_evSortCol === th.dataset.colEv) { _evSortDir *= -1; } else { _evSortCol = th.dataset.colEv; _evSortDir = 1; }
     applyEvSort();
     updateEvSortHeaders();
     renderEvents();
   });
+});
+
+// ── Event filters ──────────────────────────────────────────────────────────
+document.getElementById('ev-filter-type').addEventListener('change', e => {
+  _evFilterType = e.target.value;
+  renderEvents();
+});
+
+document.getElementById('ev-filter-mac').addEventListener('input', e => {
+  _evFilterMac = e.target.value.toLowerCase().trim();
+  renderEvents();
+});
+
+document.getElementById('ev-filter-clear').addEventListener('click', () => {
+  _evFilterType = '';
+  _evFilterMac  = '';
+  document.getElementById('ev-filter-type').value = '';
+  document.getElementById('ev-filter-mac').value  = '';
+  renderEvents();
 });
 
 async function loadEvents() {
@@ -210,6 +253,7 @@ async function loadEvents() {
     _events = await res.json();
     if (_events.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="empty">No events yet.</td></tr>';
+      document.getElementById('ev-filter-count').textContent = '0';
       return;
     }
     applyEvSort();
@@ -260,9 +304,5 @@ function escHtml(s) {
 // ── Auto-refresh ───────────────────────────────────────────────────────────
 loadDevices();
 loadEvents();
-setInterval(() => {
-  loadDevices();
-  loadEvents();
-}, 30_000);
-
+setInterval(() => { loadDevices(); loadEvents(); }, 30_000);
 document.getElementById('last-refresh').textContent = 'auto-refresh 30s';
