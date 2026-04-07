@@ -25,6 +25,17 @@ else
 fi
 
 cd "$SCRIPT_DIR"
+
+if [[ ! -f config.yml ]]; then
+    cp config.yml.example config.yml
+    echo ""
+    echo ">>> config.yml was missing — created from example."
+    echo ">>> Edit it to set your network CIDR and interface, then re-run update.sh."
+    echo "    nano $SCRIPT_DIR/config.yml"
+    echo ""
+    exit 0
+fi
+
 echo "Rebuilding container ..."
 docker compose up -d --build
 
