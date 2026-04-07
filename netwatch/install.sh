@@ -25,8 +25,8 @@ else
     echo "Cloning netwatch from GitHub ..."
     TMP="$(mktemp -d)"
     trap 'rm -rf "$TMP"' EXIT
-    git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo" -q
-    git -C "$TMP/repo" sparse-checkout set "$SUBDIR" -q
+    git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo"
+    git -C "$TMP/repo" sparse-checkout set "$SUBDIR"
     mkdir -p "$DEST"
     cp -r "$TMP/repo/$SUBDIR/." "$DEST/"
 fi
