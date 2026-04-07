@@ -155,22 +155,66 @@ async function patchDevice(mac, update) {
 }
 
 // ── Events ─────────────────────────────────────────────────────────────────
+let _events = [];
+let _evSortCol = 'ts';
+let _evSortDir = -1;  // -1 = desc (newest first)
+
+function applyEvSort() {
+  _events.sort((a, b) => {
+    const av = (a[_evSortCol] || '').toString().toLowerCase();
+    const bv = (b[_evSortCol] || '').toString().toLowerCase();
+    if (av < bv) return -_evSortDir;
+    if (av > bv) return  _evSortDir;
+    return 0;
+  });
+}
+
+function updateEvSortHeaders() {
+  document.querySelectorAll('#panel-events thead th[data-col-ev]').forEach(th => {
+    th.classList.remove('sort-asc', 'sort-desc');
+    if (th.dataset.colEv === _evSortCol) {
+      th.classList.add(_evSortDir === 1 ? 'sort-asc' : 'sort-desc');
+    }
+  });
+}
+
+function renderEvents() {
+  const tbody = document.getElementById('events-tbody');
+  tbody.innerHTML = _events.map(e => `
+    <tr>
+      <td>${fmtDate(e.ts)}</td>
+      <td class="mac-text">${e.mac}</td>
+      <td><span class="badge badge-${e.event_type}">${e.event_type.replace('_',' ')}</span></td>
+      <td>${fmtDetail(e.detail)}</td>
+    </tr>`).join('');
+}
+
+document.querySelectorAll('#panel-events thead th[data-col-ev]').forEach(th => {
+  th.addEventListener('click', () => {
+    if (_evSortCol === th.dataset.colEv) {
+      _evSortDir *= -1;
+    } else {
+      _evSortCol = th.dataset.colEv;
+      _evSortDir = 1;
+    }
+    applyEvSort();
+    updateEvSortHeaders();
+    renderEvents();
+  });
+});
+
 async function loadEvents() {
   const tbody = document.getElementById('events-tbody');
   try {
     const res = await fetch('/api/events?limit=200');
-    const events = await res.json();
-    if (events.length === 0) {
+    _events = await res.json();
+    if (_events.length === 0) {
       tbody.innerHTML = '<tr><td colspan="4" class="empty">No events yet.</td></tr>';
       return;
     }
-    tbody.innerHTML = events.map(e => `
-      <tr>
-        <td>${fmtDate(e.ts)}</td>
-        <td class="mac-text">${e.mac}</td>
-        <td><span class="badge badge-${e.event_type}">${e.event_type.replace('_',' ')}</span></td>
-        <td>${fmtDetail(e.detail)}</td>
-      </tr>`).join('');
+    applyEvSort();
+    updateEvSortHeaders();
+    renderEvents();
   } catch {
     tbody.innerHTML = '<tr><td colspan="4" class="empty">Failed to load events.</td></tr>';
   }

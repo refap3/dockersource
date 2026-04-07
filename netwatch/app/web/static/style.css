@@ -81,12 +81,15 @@ thead th {
   white-space: nowrap;
 }
 
-thead th[data-col] {
+thead th[data-col],
+thead th[data-col-ev] {
   cursor: pointer;
   user-select: none;
 }
-thead th[data-col]:hover { color: #94a3b8; }
-thead th[data-col]::after { content: ''; margin-left: 5px; }
+thead th[data-col]:hover,
+thead th[data-col-ev]:hover { color: #94a3b8; }
+thead th[data-col]::after,
+thead th[data-col-ev]::after { content: ''; margin-left: 5px; }
 thead th.sort-asc::after  { content: '▲'; color: #7dd3fc; }
 thead th.sort-desc::after { content: '▼'; color: #7dd3fc; }
 thead th.sort-asc,
