@@ -185,12 +185,29 @@ async def import_db(file: UploadFile = File(...), db: Session = Depends(get_db))
     device_cols = {c.name for c in Device.__table__.columns}
     event_cols  = {c.name for c in Event.__table__.columns}
 
+    def _parse_dt(v):
+        if isinstance(v, str):
+            try:
+                return datetime.fromisoformat(v)
+            except ValueError:
+                pass
+        return v
+
+    dt_device_cols = {'first_seen', 'last_seen'}
+    dt_event_cols  = {'ts'}
+
     for row in data["devices"]:
         filtered = {k: v for k, v in row.items() if k in device_cols}
+        for col in dt_device_cols:
+            if col in filtered:
+                filtered[col] = _parse_dt(filtered[col])
         db.add(Device(**filtered))
 
     for row in data["events"]:
         filtered = {k: v for k, v in row.items() if k in event_cols}
+        for col in dt_event_cols:
+            if col in filtered:
+                filtered[col] = _parse_dt(filtered[col])
         db.add(Event(**filtered))
 
     db.commit()
