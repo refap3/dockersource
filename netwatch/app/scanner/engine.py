@@ -41,6 +41,9 @@ async def _process_device(info: DeviceInfo | ArpEvent, db: Session):
     mac = info.mac.lower()
     ip = info.ip
 
+    if not ip or ip == "0.0.0.0":
+        return
+
     existing: Device | None = db.get(Device, mac)
     now = datetime.utcnow()
 

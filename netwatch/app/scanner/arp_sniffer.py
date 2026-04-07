@@ -21,7 +21,8 @@ def _start_sniffer(queue: asyncio.Queue, loop: asyncio.AbstractEventLoop, iface:
             if pkt.haslayer(ARP) and pkt[ARP].op == 1:  # ARP who-has (request)
                 mac = pkt[ARP].hwsrc.lower()
                 ip = pkt[ARP].psrc
-                if mac and mac != "00:00:00:00:00:00":
+                # Skip ARP probes (DHCP conflict detection uses 0.0.0.0 source)
+                if mac and mac != "00:00:00:00:00:00" and ip != "0.0.0.0":
                     asyncio.run_coroutine_threadsafe(
                         queue.put(ArpEvent(ip=ip, mac=mac)), loop
                     )
