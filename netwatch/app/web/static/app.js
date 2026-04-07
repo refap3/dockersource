@@ -1,6 +1,6 @@
 'use strict';
 
-const CATEGORIES = ['unknown','pc','laptop','phone','tablet','router','nas','printer','iot','tv','camera','other'];
+const CATEGORIES = ['unknown','pc','laptop','phone','tablet','router','nas','printer','iot','tv','streamer','camera','other'];
 
 // ── Tab switching ──────────────────────────────────────────────────────────
 function switchToTab(name) {

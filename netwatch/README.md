@@ -115,7 +115,7 @@ notifications:
 
 Auto-detected from vendor OUI lookup + hostname hints. Can be overridden in the UI or `config.yml`.
 
-Available: `router`, `pc`, `laptop`, `phone`, `tablet`, `nas`, `printer`, `iot`, `tv`, `camera`, `other`, `unknown`
+Available: `router`, `pc`, `laptop`, `phone`, `tablet`, `nas`, `printer`, `iot`, `tv`, `streamer`, `camera`, `other`, `unknown`
 
 ## Data
 

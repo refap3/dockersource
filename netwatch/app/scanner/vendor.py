@@ -23,9 +23,11 @@ VENDOR_HINTS: dict[str, str] = {
     "xiaomi": "phone",
     "huawei": "phone",
     "oneplus": "phone",
-    "amazon": "iot",
-    "google": "iot",
-    "sonos": "iot",
+    "amazon": "streamer",
+    "google": "streamer",
+    "sonos": "streamer",
+    "roku": "streamer",
+    "nvidia": "streamer",
     "philips": "iot",
     "ikea": "iot",
     "shelly": "iot",
@@ -50,6 +52,11 @@ HOSTNAME_HINTS: dict[str, str] = {
     "nas": "nas",
     "raspberrypi": "iot",
     "raspberry": "iot",
+    "roku": "streamer",
+    "firetv": "streamer",
+    "appletv": "streamer",
+    "chromecast": "streamer",
+    "shield": "streamer",
 }
 
 
