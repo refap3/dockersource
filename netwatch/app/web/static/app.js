@@ -376,26 +376,21 @@ function escHtml(s) {
 }
 
 // ── Export / Import ────────────────────────────────────────────────────────
-document.getElementById('export-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('export-btn');
-  btn.disabled = true;
-  btn.textContent = 'Exporting…';
-  try {
-    const res = await fetch('/api/export');
-    const cd = res.headers.get('Content-Disposition') || '';
-    const match = cd.match(/filename=([^\s;]+)/);
-    const filename = match ? match[1] : 'netwatch_export.json';
-    const blob = await res.blob();
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = filename;
-    a.click();
-    URL.revokeObjectURL(url);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = 'Export DB';
-  }
+document.getElementById('export-btn').addEventListener('click', () => {
+  const now = new Date();
+  const ts = now.getFullYear().toString()
+    + String(now.getMonth()+1).padStart(2,'0')
+    + String(now.getDate()).padStart(2,'0')
+    + '_'
+    + String(now.getHours()).padStart(2,'0')
+    + String(now.getMinutes()).padStart(2,'0')
+    + String(now.getSeconds()).padStart(2,'0');
+  const a = document.createElement('a');
+  a.href = '/api/export';
+  a.download = `netwatch_${ts}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
 });
 
 document.getElementById('import-btn').addEventListener('click', () => {
