@@ -17,6 +17,7 @@ class DeviceOut(BaseModel):
     known: bool
     notify_online: bool
     notify_offline: bool
+    note: Optional[str]
 
     class Config:
         from_attributes = True
@@ -28,6 +29,7 @@ class DeviceUpdate(BaseModel):
     known: Optional[bool] = None
     notify_online: Optional[bool] = None
     notify_offline: Optional[bool] = None
+    note: Optional[str] = None
 
 
 class EventOut(BaseModel):

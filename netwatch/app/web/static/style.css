@@ -143,6 +143,18 @@ tbody td { padding: 8px 12px; vertical-align: middle; }
 }
 .name-input:focus { border-bottom: 1px solid #3b82f6; }
 
+.note-cell { width: 120px; max-width: 120px; }
+.note-input {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  font-size: 12px;
+  width: 110px;
+  outline: none;
+  font-style: italic;
+}
+.note-input:focus { border-bottom: 1px solid #3b82f6; color: #e2e8f0; font-style: normal; }
+
 .mac-text { font-family: monospace; color: #94a3b8; font-size: 12px; }
 .ip-text  { font-family: monospace; }
 

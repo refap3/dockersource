@@ -12,6 +12,7 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - Event log filterable by event type and MAC address
 - Click any MAC address to cross-navigate between Devices and Events tabs
 - Click any IP address to ping that host immediately and update its online status
+- Per-device note field (up to 40 characters, inline editable in the devices table)
 - **Check Status** button pings all known devices concurrently and updates online/offline without waiting for the next sweep
 - Notifications via webhook (ntfy, Gotify, HA), Telegram, or SMTP
 

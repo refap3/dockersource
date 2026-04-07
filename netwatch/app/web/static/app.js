@@ -85,7 +85,7 @@ async function loadDevices() {
     const online = _devices.filter(d => d.online).length;
     document.getElementById('device-count').textContent = `${_devices.length} devices · ${online} online`;
     if (_devices.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="9" class="empty">No devices discovered yet. Click Scan Now.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="10" class="empty">No devices discovered yet. Click Scan Now.</td></tr>';
       return;
     }
     applySort();
@@ -125,6 +125,7 @@ function renderDevice(d) {
       <label title="Alert on power-up"><input type="checkbox" class="chk-online" data-mac="${d.mac}" ${d.notify_online ? 'checked' : ''}> up</label>
       <label title="Alert on power-down" style="margin-left:8px"><input type="checkbox" class="chk-offline" data-mac="${d.mac}" ${d.notify_offline ? 'checked' : ''}> down</label>
     </td>
+    <td class="note-cell"><input class="note-input" data-mac="${d.mac}" maxlength="40" value="${escHtml(d.note || '')}" placeholder="…" /></td>
   </tr>`;
 }
 
@@ -149,6 +150,11 @@ function attachDeviceHandlers() {
   });
   document.querySelectorAll('.chk-offline').forEach(chk => {
     chk.addEventListener('change', () => patchDevice(chk.dataset.mac, { notify_offline: chk.checked }));
+  });
+  // Note field
+  document.querySelectorAll('.note-input').forEach(inp => {
+    inp.addEventListener('blur', () => patchDevice(inp.dataset.mac, { note: inp.value }));
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') inp.blur(); });
   });
   // MAC → events cross-link
   document.querySelectorAll('#devices-tbody .mac-link').forEach(btn => {

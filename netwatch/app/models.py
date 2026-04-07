@@ -20,6 +20,7 @@ class Device(Base):
     notify_online = Column(Boolean, default=True)
     notify_offline = Column(Boolean, default=False)
     known_ips = Column(Text, default="[]")   # JSON list of all IPs ever seen for this device
+    note = Column(Text, default="")
 
 
 class Event(Base):

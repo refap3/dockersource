@@ -37,6 +37,8 @@ def update_device(mac: str, update: DeviceUpdate, db: Session = Depends(get_db))
         device.notify_online = update.notify_online
     if update.notify_offline is not None:
         device.notify_offline = update.notify_offline
+    if update.note is not None:
+        device.note = update.note[:40]
     db.commit()
     db.refresh(device)
     return device

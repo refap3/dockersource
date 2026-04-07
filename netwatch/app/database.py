@@ -30,6 +30,11 @@ def init_db():
                 "ALTER TABLE devices ADD COLUMN known_ips TEXT DEFAULT '[]'"
             ))
             conn.commit()
+        if "note" not in existing:
+            conn.execute(__import__('sqlalchemy').text(
+                "ALTER TABLE devices ADD COLUMN note TEXT DEFAULT ''"
+            ))
+            conn.commit()
 
 
 def get_db():
