@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>netwatch</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+
+<header>
+  <h1>netwatch</h1>
+  <span class="subtitle">home network monitor</span>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="devices">Devices</button>
+    <button class="tab-btn" data-tab="events">Events</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <button class="btn btn-primary" id="scan-btn">Scan Now</button>
+  <span class="status-count" id="device-count">—</span>
+  <span class="refresh-info" id="last-refresh"></span>
+</div>
+
+<main>
+
+  <!-- Devices panel -->
+  <div class="tab-panel active" id="panel-devices">
+    <table>
+      <thead>
+        <tr>
+          <th>Status</th>
+          <th>Name / Hostname</th>
+          <th>MAC</th>
+          <th>IP</th>
+          <th>Vendor</th>
+          <th>Category</th>
+          <th>First Seen</th>
+          <th>Last Seen</th>
+          <th>Alerts</th>
+        </tr>
+      </thead>
+      <tbody id="devices-tbody">
+        <tr><td colspan="9" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Events panel -->
+  <div class="tab-panel" id="panel-events">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>MAC</th>
+          <th>Event</th>
+          <th>Detail</th>
+        </tr>
+      </thead>
+      <tbody id="events-tbody">
+        <tr><td colspan="4" class="empty">Loading…</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

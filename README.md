@@ -74,6 +74,7 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 | `busybox/` | `busybox` | Utility shell with host filesystem access | — |
 | `dozzle/` | `amir20/dozzle` | Real-time container log viewer | 8077 |
 | `netalertx/` | `ghcr.io/netalertx/netalertx` | Network device monitoring & alerts | 20211 |
+| `netwatch/` | build from source | Home network monitor — device catalog, categories, power-on/off alarms | 8095 |
 | `homarr/` | `ghcr.io/homarr-labs/homarr` | Homelab dashboard | 7575 |
 | `sudokusolver/` | build from source | AI-powered Sudoku solver web app | 8011 |
 | `ouroboros/` | `pyouroboros/ouroboros` | Automatic container image updater | — |

@@ -1,0 +1,27 @@
+services:
+  netwatch:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: netwatch
+    restart: unless-stopped
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    security_opt:
+      - seccomp:unconfined
+    environment:
+      - TZ=${TZ:-Europe/Vienna}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config.yml:/app/config.yml:ro
+      - netwatch_data:/app/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8095/api/devices')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+volumes:
+  netwatch_data:
