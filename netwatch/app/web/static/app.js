@@ -294,6 +294,26 @@ document.getElementById('scan-btn').addEventListener('click', async () => {
   }
 });
 
+// ── Check status ───────────────────────────────────────────────────────────
+document.getElementById('check-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('check-btn');
+  btn.innerHTML = '<span class="spinner"></span> Checking…';
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/check-status', { method: 'POST' });
+    const data = await res.json();
+    const msg = `↑${data.went_online} ↓${data.went_offline} / ${data.checked}`;
+    btn.textContent = `Check Status (${msg})`;
+    await loadDevices();
+    await loadEvents();
+  } catch {
+    btn.textContent = 'Check failed';
+  } finally {
+    btn.disabled = false;
+    setTimeout(() => { btn.textContent = 'Check Status'; }, 5000);
+  }
+});
+
 // ── Ping ───────────────────────────────────────────────────────────────────
 const IP_RE = /^(\d{1,3}\.){3}\d{1,3}$/;
 

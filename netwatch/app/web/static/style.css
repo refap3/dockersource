@@ -51,7 +51,9 @@ header .subtitle { color: #64748b; font-size: 12px; }
   transition: opacity .15s;
 }
 .btn:hover { opacity: .85; }
-.btn-primary { background: #3b82f6; color: #fff; }
+.btn-primary   { background: #3b82f6; color: #fff; }
+.btn-secondary { background: #1e2235; color: #94a3b8; border: 1px solid #2d3148; }
+.btn-secondary:hover { color: #e2e8f0; }
 .btn-sm { padding: 3px 8px; font-size: 12px; }
 
 .status-count { color: #64748b; font-size: 13px; }

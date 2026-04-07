@@ -54,6 +54,51 @@ async def manual_scan():
     return {"found": count}
 
 
+@router.post("/api/check-status")
+async def check_all_status(db: Session = Depends(get_db)):
+    """Ping every known device concurrently and update online/offline immediately."""
+    import asyncio
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import datetime
+    import nmap
+
+    devices = db.query(Device).filter(Device.ip != None).all()  # noqa: E711
+    executor = ThreadPoolExecutor(max_workers=20)
+    loop = asyncio.get_event_loop()
+
+    def ping_one(ip):
+        try:
+            nm = nmap.PortScanner()
+            nm.scan(hosts=ip, arguments="-sn --host-timeout 5s")
+            return ip, ip in nm.all_hosts() and nm[ip].state() == "up"
+        except Exception:
+            return ip, False
+
+    results = await asyncio.gather(
+        *[loop.run_in_executor(executor, ping_one, d.ip) for d in devices]
+    )
+
+    now = datetime.utcnow()
+    went_offline = went_online = 0
+    ip_map = {d.ip: d for d in devices}
+    for ip, up in results:
+        device = ip_map.get(ip)
+        if not device:
+            continue
+        if up and not device.online:
+            device.online = True
+            device.last_seen = now
+            went_online += 1
+        elif not up and device.online:
+            device.online = False
+            went_offline += 1
+        elif up:
+            device.last_seen = now
+
+    db.commit()
+    return {"checked": len(devices), "went_online": went_online, "went_offline": went_offline}
+
+
 @router.post("/api/ping/{ip}")
 async def ping_host(ip: str, db: Session = Depends(get_db)):
     import asyncio
