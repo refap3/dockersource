@@ -119,13 +119,13 @@ function renderDevice(d) {
     <td class="ip-text">${ipCell}</td>
     <td>${escHtml(d.vendor || '—')}</td>
     <td><select class="cat-select" data-mac="${d.mac}">${catOptions}</select></td>
+    <td class="note-cell"><input class="note-input" data-mac="${d.mac}" maxlength="40" value="${escHtml(d.note || '')}" placeholder="…" /></td>
     <td>${fmtDate(d.first_seen)}</td>
     <td>${fmtDate(d.last_seen)}</td>
     <td>
       <label title="Alert on power-up"><input type="checkbox" class="chk-online" data-mac="${d.mac}" ${d.notify_online ? 'checked' : ''}> up</label>
       <label title="Alert on power-down" style="margin-left:8px"><input type="checkbox" class="chk-offline" data-mac="${d.mac}" ${d.notify_offline ? 'checked' : ''}> down</label>
     </td>
-    <td class="note-cell"><input class="note-input" data-mac="${d.mac}" maxlength="40" value="${escHtml(d.note || '')}" placeholder="…" /></td>
   </tr>`;
 }
 
