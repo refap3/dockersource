@@ -1,4 +1,5 @@
 import json
+import os
 import socket
 from datetime import datetime
 
@@ -169,7 +170,7 @@ def export_db(db: Session = Depends(get_db)):
         indent=2,
     )
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
-    host = socket.gethostname()
+    host = os.environ.get("HOST_HOSTNAME") or socket.gethostname()
     return JSONResponse(
         content=json.loads(payload),
         headers={"Content-Disposition": f"attachment; filename=netwatch_{host}_{ts}.json"},
