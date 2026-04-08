@@ -13,9 +13,9 @@ services:
       - seccomp:unconfined
     environment:
       - TZ=${TZ:-Europe/Vienna}
-      - HOST_HOSTNAME=${HOSTNAME}
     volumes:
       - /etc/localtime:/etc/localtime:ro
+      - /etc/hostname:/etc/host_hostname:ro
       - ./config.yml:/app/config.yml:ro
       - netwatch_data:/app/data
     healthcheck:
