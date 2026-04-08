@@ -16,8 +16,8 @@ else
     echo "Downloading latest files from GitHub ..."
     TMP="$(mktemp -d)"
     trap 'rm -rf "$TMP"' EXIT
-    git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo" -q
-    git -C "$TMP/repo" sparse-checkout set "$SUBDIR" -q
+    git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo"
+    git -C "$TMP/repo" sparse-checkout set "$SUBDIR"
     # Preserve user's config.yml
     cp -r "$TMP/repo/$SUBDIR/." "$SCRIPT_DIR/" --no-clobber 2>/dev/null || \
         rsync -a --exclude='config.yml' "$TMP/repo/$SUBDIR/" "$SCRIPT_DIR/" 2>/dev/null || \
