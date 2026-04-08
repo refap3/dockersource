@@ -18,10 +18,14 @@ else
     trap 'rm -rf "$TMP"' EXIT
     git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo"
     git -C "$TMP/repo" sparse-checkout set "$SUBDIR"
-    # Preserve user's config.yml
-    cp -r "$TMP/repo/$SUBDIR/." "$SCRIPT_DIR/" --no-clobber 2>/dev/null || \
-        rsync -a --exclude='config.yml' "$TMP/repo/$SUBDIR/" "$SCRIPT_DIR/" 2>/dev/null || \
+    # Preserve user's config.yml, overwrite everything else
+    if command -v rsync >/dev/null 2>&1; then
+        rsync -a --exclude='config.yml' "$TMP/repo/$SUBDIR/" "$SCRIPT_DIR/"
+    else
+        [ -f "$SCRIPT_DIR/config.yml" ] && cp "$SCRIPT_DIR/config.yml" "$TMP/config.yml.bak"
         cp -r "$TMP/repo/$SUBDIR/." "$SCRIPT_DIR/"
+        [ -f "$TMP/config.yml.bak" ] && cp "$TMP/config.yml.bak" "$SCRIPT_DIR/config.yml"
+    fi
 fi
 
 cd "$SCRIPT_DIR"
