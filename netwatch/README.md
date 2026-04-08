@@ -9,7 +9,7 @@ Home network monitor — discovers devices, tracks online/offline status, and se
 - New device alerts
 - Power-on / power-off alarms per device
 - Web dashboard on port 8095 with sortable columns in both tables
-- Event log filterable by event type and MAC address
+- Event log filterable by event type and MAC address; shows device category and note alongside each event
 - Click any MAC address to cross-navigate between Devices and Events tabs
 - Click any IP address to ping that host immediately and update its online status
 - Per-device note field (up to 40 characters, inline editable in the devices table)
