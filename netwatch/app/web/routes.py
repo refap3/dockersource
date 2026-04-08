@@ -158,10 +158,14 @@ def export_db(db: Session = Depends(get_db)):
         {c.name: getattr(d, c.name) for c in Device.__table__.columns}
         for d in db.query(Device).all()
     ]
-    events = [
-        {c.name: getattr(e, c.name) for c in Event.__table__.columns}
-        for e in db.query(Event).order_by(Event.ts.asc()).all()
-    ]
+    device_map = {d.mac: d for d in db.query(Device).all()}
+    events = []
+    for e in db.query(Event).order_by(Event.ts.asc()).all():
+        row = {c.name: getattr(e, c.name) for c in Event.__table__.columns}
+        dev = device_map.get(e.mac)
+        row["hostname"] = dev.hostname if dev else None
+        row["ip"] = dev.ip if dev else None
+        events.append(row)
     payload = json.dumps(
         {"exported_at": datetime.utcnow().isoformat(), "devices": devices, "events": events},
         default=_ser,
