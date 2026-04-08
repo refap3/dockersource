@@ -214,7 +214,7 @@ function renderEvents() {
     (visible.length < total) ? `${visible.length} of ${total}` : `${total}`;
 
   if (visible.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty">No matching events.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">No matching events.</td></tr>';
     return;
   }
   tbody.innerHTML = visible.map(e => `
@@ -223,6 +223,8 @@ function renderEvents() {
       <td><button class="mac-link" title="Go to device" data-mac="${e.mac}">${e.mac}</button></td>
       <td><span class="badge badge-${e.event_type}">${e.event_type.replace(/_/g,' ')}</span></td>
       <td>${fmtDetail(e.detail)}</td>
+      <td>${e.category ? escHtml(e.category) : ''}</td>
+      <td>${e.note ? escHtml(e.note) : ''}</td>
     </tr>`).join('');
 
   // MAC → device cross-link
@@ -269,7 +271,7 @@ async function loadEvents() {
     const res = await fetch('/api/events?limit=200');
     _events = await res.json();
     if (_events.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty">No events yet.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="6" class="empty">No events yet.</td></tr>';
       document.getElementById('ev-filter-count').textContent = '0';
       return;
     }
@@ -277,7 +279,7 @@ async function loadEvents() {
     updateEvSortHeaders();
     renderEvents();
   } catch {
-    tbody.innerHTML = '<tr><td colspan="4" class="empty">Failed to load events.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="6" class="empty">Failed to load events.</td></tr>';
   }
 }
 

@@ -50,7 +50,16 @@ def update_device(mac: str, update: DeviceUpdate, db: Session = Depends(get_db))
 
 @router.get("/api/events", response_model=list[EventOut])
 def list_events(limit: int = 100, db: Session = Depends(get_db)):
-    return db.query(Event).order_by(Event.ts.desc()).limit(limit).all()
+    rows = db.query(Event, Device.category, Device.note)\
+             .outerjoin(Device, Event.mac == Device.mac)\
+             .order_by(Event.ts.desc()).limit(limit).all()
+    result = []
+    for event, category, note in rows:
+        out = EventOut.model_validate(event)
+        out.category = category
+        out.note = note
+        result.append(out)
+    return result
 
 
 @router.post("/api/scan")

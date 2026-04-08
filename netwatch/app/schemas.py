@@ -39,6 +39,8 @@ class EventOut(BaseModel):
     detail: Optional[str]
     ts: datetime
     notified: bool
+    category: Optional[str] = None
+    note: Optional[str] = None
 
     class Config:
         from_attributes = True
