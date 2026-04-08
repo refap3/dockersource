@@ -1,4 +1,5 @@
 import json
+import socket
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
@@ -158,23 +159,20 @@ def export_db(db: Session = Depends(get_db)):
         {c.name: getattr(d, c.name) for c in Device.__table__.columns}
         for d in db.query(Device).all()
     ]
-    device_map = {d.mac: d for d in db.query(Device).all()}
-    events = []
-    for e in db.query(Event).order_by(Event.ts.asc()).all():
-        row = {c.name: getattr(e, c.name) for c in Event.__table__.columns}
-        dev = device_map.get(e.mac)
-        row["hostname"] = dev.hostname if dev else None
-        row["ip"] = dev.ip if dev else None
-        events.append(row)
+    events = [
+        {c.name: getattr(e, c.name) for c in Event.__table__.columns}
+        for e in db.query(Event).order_by(Event.ts.asc()).all()
+    ]
     payload = json.dumps(
         {"exported_at": datetime.utcnow().isoformat(), "devices": devices, "events": events},
         default=_ser,
         indent=2,
     )
     ts = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+    host = socket.gethostname()
     return JSONResponse(
         content=json.loads(payload),
-        headers={"Content-Disposition": f"attachment; filename=netwatch_{ts}.json"},
+        headers={"Content-Disposition": f"attachment; filename=netwatch_{host}_{ts}.json"},
     )
 
 

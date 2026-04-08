@@ -121,7 +121,7 @@ Available: `router`, `pc`, `laptop`, `phone`, `tablet`, `nas`, `printer`, `iot`,
 
 ## Export / Import
 
-Use the **Export DB** button in the toolbar to download a JSON snapshot of all devices and events. Each event in the export includes the device's current hostname and IP address for easy reading without cross-referencing by MAC. Use **Import DB** on another instance to upload that file — it will replace all existing data.
+Use the **Export DB** button in the toolbar to download a JSON snapshot of all devices and events. The downloaded filename includes the hostname of the machine running netwatch (e.g. `netwatch_pi93_20260408_120000.json`). Use **Import DB** on another instance to upload that file — it will replace all existing data.
 
 This is the recommended way to copy device definitions and history between Pi instances.
 
