@@ -77,7 +77,7 @@ Each folder contains a `docker-compose.yml` (and `.env.example` where secrets ar
 | `netwatch/` | build from source | Home network monitor — device catalog, categories, power-on/off alarms | 8095 |
 | `homarr/` | `ghcr.io/homarr-labs/homarr` | Homelab dashboard | 7575 |
 | `sudokusolver/` | build from source | AI-powered Sudoku solver web app | 8011 |
-| `ouroboros/` | `pyouroboros/ouroboros` | Automatic container image updater | — |
+| `ouroboros/` | `containrrr/watchtower` | On-demand container image updater — run once, then exits; cleans up old images | — |
 | `cloudflared/` | `cloudflare/cloudflared` | Cloudflare Tunnel (zero-trust ingress) | — |
 | `twingate-connector/` | `twingate/connector` | Twingate zero-trust network connector | — |
 | `wg-easy/` | `ghcr.io/wg-easy/wg-easy` | WireGuard VPN with web UI | 51821 |
@@ -107,6 +107,12 @@ Your config files (`.env`, `config.yml`) and data volumes are never touched by a
 
 ### First-run notes
 
+- **watchtower** — runs on demand only; does not start automatically. Trigger a full update + cleanup cycle with:
+  ```bash
+  docker start watchtower
+  docker logs -f watchtower
+  ```
+  It checks all running containers for newer images, updates them, and removes the old images, then exits.
 - **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
 - **netalertx** — on Raspberry Pi, the entrypoint `mounts.py` script fails with exit 126 (`python3: Operation not permitted`) unless `cap_add: [NET_ADMIN, NET_RAW]` and `security_opt: [seccomp:unconfined]` are set. Both are included in the compose file.
 
@@ -157,7 +163,7 @@ dcud synology/homarr/
 | `synology/wg-easy/` | `wg-easy/` | Bind mount; requires WireGuard kernel module |
 | `synology/filebrowser/` | `filebrowser/` | Mounts `/volume1` as root; uses port 8080 internally (Synology Docker blocks port 80 binding) |
 
-> **dozzle, ouroboros, cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is. Confirmed working: dozzle (`/var/run/docker.sock` path is identical on Synology DSM).
+> **dozzle, ouroboros (watchtower), cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is. Confirmed working: dozzle (`/var/run/docker.sock` path is identical on Synology DSM).
 
 ### wg-easy on Synology
 

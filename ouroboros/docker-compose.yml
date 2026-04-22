@@ -1,13 +1,12 @@
 services:
-  ouroboros:
-    image: pyouroboros/ouroboros:latest
-    container_name: ouroboros
-    restart: unless-stopped
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: "no"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - CLEANUP=true
-      - INTERVAL=300
-      - LOG_LEVEL=info
-      - SELF_UPDATE=true
+      - WATCHTOWER_RUN_ONCE=true
+      - WATCHTOWER_CLEANUP=true
       - TZ=Europe/Amsterdam
+      - DOCKER_API_VERSION=1.47
