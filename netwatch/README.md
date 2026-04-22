@@ -34,6 +34,10 @@ bash install.sh            # from netwatch/
 
 The installer creates `config.yml` from the example and stops, prompting you to set your network CIDR and interface. Re-run after editing to build and start the container.
 
+> **Important:** Always run `install.sh` (or copy `config.yml.example` → `config.yml` manually) **before** running `docker compose up`. If you run compose before the file exists, Docker creates `config.yml` as a directory and the container will fail. Fix with: `rm -rf config.yml && cp config.yml.example config.yml`.
+>
+> If your Pi is on WiFi, set `scanner.interface: wlan0`. Check your interface name with `ip link show`.
+
 **Update an existing installation:**
 
 SSH into the host, then run from the `netwatch/` directory:
@@ -72,7 +76,7 @@ Requires `network_mode: host` — runs best on a Linux host (Raspberry Pi or Syn
 | Key | Default | Description |
 |-----|---------|-------------|
 | `scanner.network` | `192.168.1.0/24` | CIDR to scan |
-| `scanner.interface` | `eth0` | Interface for ARP sniffing |
+| `scanner.interface` | `eth0` | Interface for ARP sniffing (`eth0` for wired, `wlan0` for WiFi — check with `ip link show`) |
 | `scanner.interval_minutes` | `5` | Nmap sweep frequency |
 | `scanner.offline_threshold_minutes` | `15` | Minutes before marking device offline |
 | `alarms.new_device` | `true` | Alert on unknown MAC |
