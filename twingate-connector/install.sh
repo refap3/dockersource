@@ -30,14 +30,21 @@ if [[ ! -f .env ]] || \
    grep -qE '^TWINGATE_ACCESS_TOKEN=your-access-token$' .env 2>/dev/null; then
 
     echo ""
-    echo "Paste the 'docker run' command from the Twingate dashboard, then press Enter."
+    echo "Paste the 'docker run' command from the Twingate dashboard."
+    echo "Press Enter twice when done."
     echo ""
     echo "  How to get it:"
     echo "    1. Go to https://app.twingate.com → your network → Connectors"
     echo "    2. Add or select a connector → click 'Generate Tokens'"
     echo "    3. Choose Docker → copy the 'docker run ...' command shown"
     echo ""
-    read -r -p "> " DOCKER_RUN_CMD
+
+    # Read until blank line, then join — handles multi-line paste with \ continuations
+    DOCKER_RUN_CMD=""
+    while IFS= read -r line; do
+        [[ -z "$line" ]] && break
+        DOCKER_RUN_CMD="$DOCKER_RUN_CMD $line"
+    done
 
     NETWORK="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_NETWORK)"
     ACCESS="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_ACCESS_TOKEN)"
