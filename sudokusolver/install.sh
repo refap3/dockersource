@@ -1,89 +1,53 @@
 #!/usr/bin/env bash
-# Sudoku Tutor — installer (Mac / Linux)
+# sudokusolver — Docker installer
 #
-# Fresh install (one line, no repo needed):
-#   curl -fsSL https://raw.githubusercontent.com/refap3/claudeCode/main/sudokusolver/install.sh | bash
+# From repo root:   bash sudokusolver/install.sh
+# From service dir: bash install.sh
 #
-# Already have the repo:
-#   bash sudokusolver/install.sh      # from repo root
-#   bash install.sh                   # from sudokusolver/
-#
-# Wipe and reinstall:
-#   rm -rf ~/sudoku-tutor
-#   curl -fsSL https://raw.githubusercontent.com/refap3/claudeCode/main/sudokusolver/install.sh | bash
+# For the standalone desktop app (Mac/Linux), see:
+#   https://github.com/refap3/claudeCode/blob/main/sudokusolver/install.sh
 set -euo pipefail
 
-REPO="https://github.com/refap3/claudeCode"
-SUBDIR="sudokusolver"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
 
-# ── Detect local vs fresh (curl) mode ────────────────────────────────────────
-SCRIPT_DIR=""
-if [[ -n "${BASH_SOURCE[0]:-}" ]] && [[ "${BASH_SOURCE[0]}" != "bash" ]]; then
-    SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" 2>/dev/null && pwd || true)"
-fi
+echo "=== sudokusolver — install ==="
 
-if [[ -n "$SCRIPT_DIR" ]] && [[ -f "$SCRIPT_DIR/sudoku_gui.py" ]]; then
-    FRESH=false
-    DEST="$SCRIPT_DIR"
-else
-    FRESH=true
-    DEST="${SUDOKU_DIR:-$HOME/sudoku-tutor}"
-fi
-
-echo "=== Sudoku Tutor — install ==="
-
-if [[ "$FRESH" == true ]]; then
-    if [[ -f "$DEST/sudoku_gui.py" ]]; then
-        echo "Already installed at $DEST — run update.sh to refresh."
-        exit 0
-    fi
-    echo "Installing to $DEST ..."
-    echo "Cloning from GitHub (sudokusolver only) ..."
-    TMP="$(mktemp -d)"
-    trap 'rm -rf "$TMP"' EXIT
-    git clone --depth 1 --filter=blob:none --sparse "$REPO" "$TMP/repo" -q
-    git -C "$TMP/repo" sparse-checkout set "$SUBDIR" -q
-    mkdir -p "$DEST"
-    cp -r "$TMP/repo/$SUBDIR/." "$DEST/"
-fi
-
-cd "$DEST"
-
-if ! command -v python3 &>/dev/null; then
-    echo "ERROR: python3 not found. Install Python 3.8+ and try again." >&2
+# ── Prerequisites ──────────────────────────────────────────────────────────────
+if ! command -v docker &>/dev/null; then
+    echo "ERROR: docker not found. Install Docker and try again." >&2
     exit 1
 fi
 
-echo "Creating virtual environment ..."
-python3 -m venv .venv
-echo "Installing dependencies ..."
-.venv/bin/pip install --upgrade pip -q
-.venv/bin/pip install -r requirements.txt -q
-chmod +x launch.sh update.sh
+# ── Configuration ──────────────────────────────────────────────────────────────
+# Optional: ANTHROPIC_API_KEY in .env
+#   Required only for the image/screenshot import feature (Claude vision).
+#   The solver works fully without it — manual puzzle entry and all 30 built-in
+#   puzzles are available regardless.
+#
+#   To enable image import:
+#     1. Get an API key from https://console.anthropic.com
+#     2. Set ANTHROPIC_API_KEY=sk-ant-... in .env
 
-# Launcher scripts (always written so re-running repairs missing launchers)
-BIN="${SUDOKU_BIN:-$HOME/.local/bin}"
-mkdir -p "$BIN"
+if [[ ! -f .env ]]; then
+    cp .env.example .env
+    echo ""
+    echo ">>> .env created from .env.example."
+fi
 
-cat > "$BIN/sudoku" <<EOF
-#!/usr/bin/env bash
-"$DEST/.venv/bin/python" "$DEST/sudoku_gui.py" "\$@" > /dev/null 2>&1 &
-disown
-EOF
-chmod +x "$BIN/sudoku"
+KEY="$(grep -E '^ANTHROPIC_API_KEY=' .env | cut -d= -f2-)"
+if [[ -z "$KEY" || "$KEY" == "sk-ant-..." ]]; then
+    echo ""
+    echo "INFO: ANTHROPIC_API_KEY is not set — image import will be disabled."
+    echo "      Set it in .env to enable puzzle import from screenshots."
+else
+    echo "ANTHROPIC_API_KEY is set — image import enabled."
+fi
 
-cat > "$BIN/sudoku-update" <<EOF
-#!/usr/bin/env bash
-exec bash "$DEST/update.sh"
-EOF
-chmod +x "$BIN/sudoku-update"
-echo "Launchers: $BIN/sudoku, $BIN/sudoku-update"
-
-# PATH hint if needed
-case ":${PATH}:" in
-    *":$BIN:"*) ;;
-    *) echo "" && echo "NOTE: Add to your shell profile:  export PATH=\"\$HOME/.local/bin:\$PATH\"" ;;
-esac
+# ── Start ──────────────────────────────────────────────────────────────────────
+echo "Building and starting sudokusolver ..."
+type dcud &>/dev/null 2>&1 || dcud() { docker compose up -d --build; }
+dcud
 
 echo ""
-echo "Done. Run: sudoku"
+echo "Done. UI: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo localhost):8011"

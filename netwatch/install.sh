@@ -34,23 +34,39 @@ fi
 echo "=== netwatch — install ==="
 cd "$DEST"
 
+# ── Prerequisites ──────────────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then
     echo "ERROR: docker not found. Install Docker and try again." >&2
     exit 1
 fi
 
+# ── Configuration ──────────────────────────────────────────────────────────────
+# Required: config.yml — must exist before the container starts. If Docker
+# runs first without it, Docker creates config.yml as a directory and the
+# container fails permanently until manually removed.
+#
+# Key settings to configure in config.yml:
+#   scanner.network   — CIDR range to scan, e.g. 192.168.1.0/24
+#   scanner.interface — network interface, e.g. eth0 or wlan0
+#
+# Optional: webhook, Telegram, or SMTP notification settings.
+
 if [[ ! -f config.yml ]]; then
     cp config.yml.example config.yml
     echo ""
-    echo ">>> config.yml created from example."
+    echo ">>> config.yml created from config.yml.example."
     echo ">>> Edit it now to set your network CIDR and interface, then re-run this script."
     echo "    nano $DEST/config.yml"
     echo ""
     exit 0
 fi
 
+echo "config.yml is present."
+
+# ── Start ──────────────────────────────────────────────────────────────────────
 echo "Building and starting netwatch ..."
-docker compose up -d --build
+type dcud &>/dev/null 2>&1 || dcud() { docker compose up -d --build; }
+dcud
 
 echo ""
-echo "Done. Dashboard: http://$(hostname -I | awk '{print $1}'):8095"
+echo "Done. Dashboard: http://$(hostname -I 2>/dev/null | awk '{print $1}' || echo localhost):8095"
