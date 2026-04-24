@@ -79,6 +79,17 @@ bash install.sh
 
 For containers that need secrets or config files, the script creates the file from the example, explains what to fill in, and exits — edit the file, then re-run the script to start the container.
 
+### Generic bootstrap
+
+`generic/` is a universal bootstrapper for any container that provides a `docker run` command (e.g. Twingate, Cloudflare, Tailscale, etc.):
+
+1. Run `bash generic/install.sh`
+2. In a second SSH session, run the provider's `docker run` command
+3. Press Enter — the script inspects the running container and generates `docker-compose.yml` + `.env`
+4. Review the generated files if needed, then confirm to start
+
+The generated files are gitignored since they contain credentials.
+
 ### Container index
 
 | Folder | Image | Description | Port | Setup required |
