@@ -21,9 +21,8 @@ fi
 # We parse it to extract credentials rather than requiring manual .env editing.
 
 extract_env() {
-    # Extract -e KEY=VALUE from a docker run command
     local cmd="$1" key="$2"
-    echo "$cmd" | grep -oE "\-e[[:space:]]+${key}=[^[:space:]]+" | sed "s/-e[[:space:]]*${key}=//"
+    echo "$cmd" | grep -oE "\-e[[:space:]]+${key}=[^[:space:]]+" | sed "s/-e[[:space:]]*${key}=//" || true
 }
 
 if [[ ! -f .env ]] || \
