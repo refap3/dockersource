@@ -34,12 +34,9 @@ if [[ ! -f .env ]] || \
     echo "    1. Go to https://app.twingate.com → your network → Connectors"
     echo "    2. Add or select a connector → click 'Generate Tokens'"
     echo "    3. Choose Docker → copy the 'docker run ...' command shown"
+    echo "       (use the copy icon to get it as a single line)"
     echo ""
-    echo "Paste it below, then press Ctrl+D:"
-    echo ""
-
-    # cat reads until Ctrl+D — works for both single-line and multi-line paste
-    DOCKER_RUN_CMD="$(cat | tr -d '\\\n' | tr -s ' ')"
+    read -r -p "Paste docker run command: " DOCKER_RUN_CMD
 
     NETWORK="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_NETWORK)"
     ACCESS="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_ACCESS_TOKEN)"
