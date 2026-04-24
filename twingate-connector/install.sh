@@ -20,7 +20,7 @@ fi
 # Required: three credentials in .env, all obtained from the Twingate admin
 # dashboard (app.twingate.com) under your network's Connectors section:
 #
-#   TWINGATE_NETWORK       — e.g. yournetwork.twingate.com
+#   TWINGATE_NETWORK       — subdomain only, e.g. "yournetwork" (not yournetwork.twingate.com)
 #   TWINGATE_ACCESS_TOKEN  — connector access token
 #   TWINGATE_REFRESH_TOKEN — connector refresh token
 #
@@ -39,7 +39,7 @@ NETWORK="$(grep -E '^TWINGATE_NETWORK=' .env | cut -d= -f2-)"
 ACCESS="$(grep -E '^TWINGATE_ACCESS_TOKEN=' .env | cut -d= -f2-)"
 REFRESH="$(grep -E '^TWINGATE_REFRESH_TOKEN=' .env | cut -d= -f2-)"
 
-[[ -z "$NETWORK"  || "$NETWORK"  == "yournetwork.twingate.com" ]] && MISSING+=(TWINGATE_NETWORK)
+[[ -z "$NETWORK"  || "$NETWORK"  == "yournetwork" ]] && MISSING+=(TWINGATE_NETWORK)
 [[ -z "$ACCESS"   || "$ACCESS"   == "your-access-token"        ]] && MISSING+=(TWINGATE_ACCESS_TOKEN)
 [[ -z "$REFRESH"  || "$REFRESH"  == "your-refresh-token"       ]] && MISSING+=(TWINGATE_REFRESH_TOKEN)
 
