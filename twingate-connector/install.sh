@@ -43,9 +43,11 @@ if [[ ! -f .env ]] || \
 
     if [[ -z "$NETWORK" || -z "$ACCESS" || -z "$REFRESH" ]]; then
         echo ""
+        echo "DEBUG — received command:" >&2
+        echo "$DOCKER_RUN_CMD" | sed 's/TOKEN=[^ ]*/TOKEN=REDACTED/g' >&2
+        echo ""
         echo "ERROR: could not parse TWINGATE_NETWORK, TWINGATE_ACCESS_TOKEN, and" >&2
-        echo "       TWINGATE_REFRESH_TOKEN from that command. Make sure you pasted" >&2
-        echo "       the full docker run command from the Twingate dashboard." >&2
+        echo "       TWINGATE_REFRESH_TOKEN from that command." >&2
         exit 1
     fi
 
