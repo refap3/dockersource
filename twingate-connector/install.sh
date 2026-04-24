@@ -20,18 +20,40 @@ fi
 if [[ ! -f .env ]] || \
    grep -qE '^TWINGATE_ACCESS_TOKEN=your-access-token$' .env 2>/dev/null; then
 
-    echo ""
-    echo "Get these values from: https://app.twingate.com → your network → Connectors"
-    echo "Add or select a connector → Generate Tokens → choose Docker."
-    echo ""
-    read -r -p "Network name (e.g. mycompany, without .twingate.com): " NETWORK
-    read -r -p "Access token:  " ACCESS
-    read -r -p "Refresh token: " REFRESH
+    # Remove any leftover container that would cause a name conflict with docker run
+    docker rm -f twingate-connector 2>/dev/null || true
 
-    if [[ -z "$NETWORK" || -z "$ACCESS" || -z "$REFRESH" ]]; then
-        echo "ERROR: all three values are required." >&2
+    echo ""
+    echo "  1. Get the docker run command from the Twingate dashboard:"
+    echo "     https://app.twingate.com → your network → Connectors → Generate Tokens → Docker"
+    echo ""
+    echo "  2. Open a second SSH session to this machine and run that command."
+    echo "     (new terminal tab → rap $(hostname -I | awk '{print $1}' | awk -F. '{print $NF}'))"
+    echo ""
+    read -r -p "Press Enter once the container is running: "
+
+    # Find the container by image — works regardless of what name docker run used
+    TEMP="$(docker ps --format '{{.Names}} {{.Image}}' | awk '/twingate\/connector/{print $1}' | head -1 || true)"
+
+    if [[ -z "$TEMP" ]]; then
+        echo "ERROR: no running twingate/connector container found." >&2
+        echo "       Start the container first, then re-run this script." >&2
         exit 1
     fi
+
+    echo "Found container: $TEMP — extracting credentials ..."
+    ENVS="$(docker inspect "$TEMP" --format '{{range .Config.Env}}{{println .}}{{end}}')"
+    NETWORK="$(echo "$ENVS" | grep '^TWINGATE_NETWORK='     | cut -d= -f2-)"
+    ACCESS="$(echo  "$ENVS" | grep '^TWINGATE_ACCESS_TOKEN=' | cut -d= -f2-)"
+    REFRESH="$(echo "$ENVS" | grep '^TWINGATE_REFRESH_TOKEN='| cut -d= -f2-)"
+
+    if [[ -z "$NETWORK" || -z "$ACCESS" || -z "$REFRESH" ]]; then
+        echo "ERROR: could not extract credentials from container '$TEMP'." >&2
+        exit 1
+    fi
+
+    echo "Stopping temporary container ..."
+    docker stop "$TEMP" >/dev/null && docker rm "$TEMP" >/dev/null
 
     cat > .env <<EOF
 TWINGATE_NETWORK=$NETWORK
