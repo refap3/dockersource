@@ -17,28 +17,48 @@ if ! command -v docker &>/dev/null; then
 fi
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# Required: TUNNEL_TOKEN in .env
-#   1. Log in to Cloudflare Zero Trust dashboard (one.dash.cloudflare.com)
-#   2. Go to Networks → Tunnels → Create a tunnel
-#   3. Copy the tunnel token and paste it into .env
+if [[ ! -f .env ]] || \
+   grep -qE '^TUNNEL_TOKEN=your-cloudflare-tunnel-token-here$' .env 2>/dev/null; then
 
-if [[ ! -f .env ]]; then
-    cp .env.example .env
-    echo ""
-    echo ">>> .env created from .env.example."
-fi
+    # Remove any leftover container that would cause a name conflict with docker run
+    docker rm -f cloudflared 2>/dev/null || true
 
-TUNNEL_TOKEN="$(grep -E '^TUNNEL_TOKEN=' .env | cut -d= -f2-)"
-if [[ -z "$TUNNEL_TOKEN" || "$TUNNEL_TOKEN" == "your-cloudflare-tunnel-token-here" ]]; then
     echo ""
-    echo "ACTION REQUIRED — set TUNNEL_TOKEN in .env before starting:"
-    echo "  1. Open Cloudflare Zero Trust: https://one.dash.cloudflare.com"
-    echo "  2. Networks → Tunnels → Create a tunnel → copy the token"
-    echo "  3. Edit .env and replace the placeholder:"
-    echo "     TUNNEL_TOKEN=<your-token>"
+    echo "  1. Get the docker run command from the Cloudflare dashboard:"
+    echo "     https://one.dash.cloudflare.com → Networks → Tunnels → your tunnel → Configure"
+    echo "     (or create a new tunnel and select Docker as the environment)"
     echo ""
-    echo "Then re-run this script."
-    exit 0
+    echo "  2. Open a second SSH session to this machine and run that command."
+    echo "     (new terminal tab → rap $(hostname -I | awk '{print $1}' | awk -F. '{print $NF}'))"
+    echo ""
+    read -r -p "Press Enter once the container is running: "
+
+    # Find the container by image — token is a command arg, not an env var
+    TEMP="$(docker ps --format '{{.Names}} {{.Image}}' | awk '/cloudflare\/cloudflared/{print $1}' | head -1 || true)"
+
+    if [[ -z "$TEMP" ]]; then
+        echo "ERROR: no running cloudflare/cloudflared container found." >&2
+        echo "       Start the container first, then re-run this script." >&2
+        exit 1
+    fi
+
+    echo "Found container: $TEMP — extracting token ..."
+    CMD="$(docker inspect "$TEMP" --format '{{join .Config.Cmd " "}}')"
+    TUNNEL_TOKEN="$(echo "$CMD" | grep -oE '\-\-token [^ ]+' | awk '{print $2}' || true)"
+
+    if [[ -z "$TUNNEL_TOKEN" ]]; then
+        echo "ERROR: could not extract --token from container '$TEMP'." >&2
+        exit 1
+    fi
+
+    echo "Stopping temporary container ..."
+    docker stop "$TEMP" >/dev/null && docker rm "$TEMP" >/dev/null
+
+    cat > .env <<EOF
+TUNNEL_TOKEN=$TUNNEL_TOKEN
+EOF
+    echo ""
+    echo ">>> .env written with tunnel token."
 fi
 
 echo "TUNNEL_TOKEN is set."
