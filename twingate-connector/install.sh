@@ -17,46 +17,51 @@ if ! command -v docker &>/dev/null; then
 fi
 
 # ── Configuration ──────────────────────────────────────────────────────────────
-# Required: three credentials in .env, all obtained from the Twingate admin
-# dashboard (app.twingate.com) under your network's Connectors section:
-#
-#   TWINGATE_NETWORK       — subdomain only, e.g. "yournetwork" (not yournetwork.twingate.com)
-#   TWINGATE_ACCESS_TOKEN  — connector access token
-#   TWINGATE_REFRESH_TOKEN — connector refresh token
-#
-# Optional:
-#   TWINGATE_LABEL_HOSTNAME — friendly name shown in the dashboard
-#                             (defaults to the container's auto-generated ID)
+# Twingate provides a pre-filled docker run command in the dashboard.
+# We parse it to extract credentials rather than requiring manual .env editing.
 
-if [[ ! -f .env ]]; then
-    cp .env.example .env
+extract_env() {
+    # Extract -e KEY=VALUE from a docker run command
+    local cmd="$1" key="$2"
+    echo "$cmd" | grep -oE "\-e[[:space:]]+${key}=[^[:space:]]+" | sed "s/-e[[:space:]]*${key}=//"
+}
+
+if [[ ! -f .env ]] || \
+   grep -qE '^TWINGATE_ACCESS_TOKEN=your-access-token$' .env 2>/dev/null; then
+
     echo ""
-    echo ">>> .env created from .env.example."
+    echo "Paste the 'docker run' command from the Twingate dashboard, then press Enter."
+    echo ""
+    echo "  How to get it:"
+    echo "    1. Go to https://app.twingate.com → your network → Connectors"
+    echo "    2. Add or select a connector → click 'Generate Tokens'"
+    echo "    3. Choose Docker → copy the 'docker run ...' command shown"
+    echo ""
+    read -r -p "> " DOCKER_RUN_CMD
+
+    NETWORK="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_NETWORK)"
+    ACCESS="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_ACCESS_TOKEN)"
+    REFRESH="$(extract_env "$DOCKER_RUN_CMD" TWINGATE_REFRESH_TOKEN)"
+
+    if [[ -z "$NETWORK" || -z "$ACCESS" || -z "$REFRESH" ]]; then
+        echo ""
+        echo "ERROR: could not parse TWINGATE_NETWORK, TWINGATE_ACCESS_TOKEN, and" >&2
+        echo "       TWINGATE_REFRESH_TOKEN from that command. Make sure you pasted" >&2
+        echo "       the full docker run command from the Twingate dashboard." >&2
+        exit 1
+    fi
+
+    cat > .env <<EOF
+TWINGATE_NETWORK=$NETWORK
+TWINGATE_ACCESS_TOKEN=$ACCESS
+TWINGATE_REFRESH_TOKEN=$REFRESH
+TWINGATE_LABEL_HOSTNAME=$(hostname -s)
+EOF
+    echo ""
+    echo ">>> .env written with credentials for network: $NETWORK"
 fi
 
-MISSING=()
-NETWORK="$(grep -E '^TWINGATE_NETWORK=' .env | cut -d= -f2-)"
-ACCESS="$(grep -E '^TWINGATE_ACCESS_TOKEN=' .env | cut -d= -f2-)"
-REFRESH="$(grep -E '^TWINGATE_REFRESH_TOKEN=' .env | cut -d= -f2-)"
-
-[[ -z "$NETWORK"  || "$NETWORK"  == "yournetwork" ]] && MISSING+=(TWINGATE_NETWORK)
-[[ -z "$ACCESS"   || "$ACCESS"   == "your-access-token"        ]] && MISSING+=(TWINGATE_ACCESS_TOKEN)
-[[ -z "$REFRESH"  || "$REFRESH"  == "your-refresh-token"       ]] && MISSING+=(TWINGATE_REFRESH_TOKEN)
-
-if [[ ${#MISSING[@]} -gt 0 ]]; then
-    echo ""
-    echo "ACTION REQUIRED — set the following variables in .env before starting:"
-    for var in "${MISSING[@]}"; do
-        echo "  $var"
-    done
-    echo ""
-    echo "Get these values from: https://app.twingate.com → your network → Connectors"
-    echo ""
-    echo "Then re-run this script."
-    exit 0
-fi
-
-echo "All required credentials are set."
+echo "Credentials are set."
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 echo "Starting twingate-connector ..."
