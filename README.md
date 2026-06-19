@@ -84,9 +84,10 @@ For containers that need secrets or config files, the script creates the file fr
 `generic/` is a universal bootstrapper for any container that provides a `docker run` command (e.g. Twingate, Cloudflare, Tailscale, etc.):
 
 1. Run `bash generic/install.sh`
-2. In a second SSH session, run the provider's `docker run` command
-3. Press Enter — the script inspects the running container and generates `docker-compose.yml` + `.env`
-4. Review the generated files if needed, then confirm to start
+2. Enter a folder name — the script creates it and all files go there
+3. In a second SSH session, `cd` to that folder and run the provider's `docker run` command
+4. Press Enter — the script inspects the running container and generates `docker-compose.yml` + `.env` in that folder
+5. Review the generated files if needed, then confirm to start
 
 The generated files are gitignored since they contain credentials.
 

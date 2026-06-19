@@ -10,7 +10,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
+INVOKE_DIR="$(pwd)"
 
 echo "=== generic container bootstrap ==="
 
@@ -22,12 +22,22 @@ if ! command -v python3 &>/dev/null; then
     echo "ERROR: python3 not found." >&2; exit 1
 fi
 
+# ── Ask for target folder ──────────────────────────────────────────────────────
+read -r -p "Folder name for this service (will be created at $INVOKE_DIR/<name>): " FOLDER_NAME
+if [[ -z "$FOLDER_NAME" ]]; then
+    echo "ERROR: folder name required." >&2; exit 1
+fi
+TARGET_DIR="$INVOKE_DIR/$FOLDER_NAME"
+mkdir -p "$TARGET_DIR"
+echo "Created: $TARGET_DIR"
+
 # ── Skip generation if compose file already exists ────────────────────────────
-if [[ ! -f docker-compose.yml ]]; then
+if [[ ! -f "$TARGET_DIR/docker-compose.yml" ]]; then
 
     echo ""
     echo "  1. Get the docker run command for your service."
-    echo "  2. Open a second SSH session to this machine and run that command."
+    echo "  2. cd $TARGET_DIR"
+    echo "  3. Open a second SSH session to this machine and run that command from there."
     echo "     (new terminal tab → rap $(hostname -I | awk '{print $1}' | awk -F. '{print $NF}'))"
     echo ""
     read -r -p "Press Enter once the container is running: "
@@ -44,8 +54,9 @@ if [[ ! -f docker-compose.yml ]]; then
     trap 'rm -f "$PYFILE"' EXIT
 
     cat > "$PYFILE" << 'PYEOF'
-import json, sys, re
+import json, sys, re, os
 
+target_dir = sys.argv[1] if len(sys.argv) > 1 else '.'
 data = json.load(sys.stdin)[0]
 cfg  = data['Config']
 hcfg = data['HostConfig']
@@ -166,7 +177,7 @@ if named_vols:
     L += ['', 'volumes:']
     for nv in named_vols: L.append(f'  {nv["Name"]}:')
 
-with open('docker-compose.yml', 'w') as f:
+with open(os.path.join(target_dir, 'docker-compose.yml'), 'w') as f:
     f.write('\n'.join(L) + '\n')
 
 # ── .env ──────────────────────────────────────────────────────────────────────
@@ -174,7 +185,7 @@ env_lines = []
 for k, v in sorted(env_vars.items()):
     env_lines.append(f'{k}="{v}"' if ' ' in v else f'{k}={v}')
 
-with open('.env', 'w') as f:
+with open(os.path.join(target_dir, '.env'), 'w') as f:
     f.write('\n'.join(env_lines) + '\n')
 
 # Summary
@@ -184,21 +195,22 @@ if env_vars:
     print(f'  env:      {", ".join(sorted(env_vars.keys()))}')
 PYEOF
 
-    docker inspect "$TEMP" | python3 "$PYFILE"
+    docker inspect "$TEMP" | python3 "$PYFILE" "$TARGET_DIR"
 
     echo "Stopping temporary container ..."
     docker stop "$TEMP" >/dev/null && docker rm "$TEMP" >/dev/null
 
     echo ""
-    echo ">>> docker-compose.yml and .env written."
+    echo ">>> docker-compose.yml and .env written to $TARGET_DIR"
     echo "    Review them now if you need to make changes, then press Enter to start."
     echo ""
     read -r -p "Start the container? [Y/n] " CONFIRM
-    [[ "${CONFIRM,,}" == "n" ]] && echo "Run 'dcud' when ready." && exit 0
+    [[ "${CONFIRM,,}" == "n" ]] && echo "cd $TARGET_DIR && docker compose up -d" && exit 0
 fi
 
 # ── Start ──────────────────────────────────────────────────────────────────────
 echo "Starting container ..."
+cd "$TARGET_DIR"
 type dcud &>/dev/null 2>&1 || dcud() { docker compose up -d; }
 dcud
 

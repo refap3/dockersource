@@ -117,16 +117,21 @@ command (e.g. Twingate, Cloudflare, Tailscale):
 1. Run
 .BR "bash generic/install.sh"
 .br
-2. In a second SSH session, run the provider's
+2. Enter a folder name — the script creates it and all files go there
+.br
+3. In a second SSH session,
+.B cd
+to that folder and run the provider's
 .B docker run
 command
 .br
-3. Press Enter — the script inspects the running container and generates
+4. Press Enter — the script inspects the running container and generates
 .B docker-compose.yml
 +
 .B .env
+in that folder
 .br
-4. Review if needed, then confirm to start
+5. Review if needed, then confirm to start
 .PP
 Generated files are gitignored (they contain credentials).
 .SS Container index
