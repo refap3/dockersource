@@ -24,7 +24,7 @@ Image: `lscr.io/linuxserver/calibre:latest` (Calibre 9.11.0, arm64). Container n
 | What | URL | Login |
 |---|---|---|
 | Desktop UI (full Calibre in browser) | **https://192.168.1.52:8092** | — |
-| Content server (books web app) | http://192.168.1.52:8081 | `calibre` / see `~/dockersource/calibre/.env` on pi52 |
+| Content server (books web app) | http://192.168.1.52:8081 | username + password in `~/dockersource/calibre/.env` on pi52 |
 
 No VNC client needed — the desktop streams to the browser.
 
