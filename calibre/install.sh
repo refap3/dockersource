@@ -78,8 +78,9 @@ prefs['library_path'] = lib
 dynamic.set('welcome_wizard_was_run', True)
 
 # Auto-start the content server whenever calibre starts
-if 'autolaunch_server' in prefs.defaults:
-    prefs['autolaunch_server'] = True
+# (pref lives in the GUI config, not calibre.utils.config.prefs)
+from calibre.gui2 import config as gui_config
+gui_config['autolaunch_server'] = True
 
 # Content server: port 8081, authentication on
 from calibre.srv.opts import change_settings
