@@ -4,8 +4,8 @@ services:
     container_name: calibre
     restart: unless-stopped
     ports:
-      - 8091:8080   # KasmVNC web UI (http) — full Calibre desktop in the browser
-      - 8092:8181   # KasmVNC web UI (https)
+      - 8091:8080   # web UI (http) — only usable behind a TLS reverse proxy
+      - 8092:8181   # web UI (https) — full Calibre desktop in the browser; use this one
       - 8081:8081   # Calibre content server (browse/download/upload books)
     environment:
       - PUID=1000

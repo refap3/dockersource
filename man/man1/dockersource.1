@@ -209,8 +209,10 @@ then change under Settings → User Management.
 .TP
 .B calibre/
 lscr.io/linuxserver/calibre — Full Calibre desktop streamed to the browser via
-KasmVNC. Ports: 8091 (desktop UI http), 8092 (desktop UI https), 8081 (content
-server for browsing, uploading, and downloading books).
+KasmVNC. Ports: 8092 (desktop UI, HTTPS only — plain http is rejected by the
+streaming stack; accept the self-signed certificate warning), 8081 (content
+server for browsing, uploading, and downloading books; plain http works),
+8091 (http, only usable behind a TLS reverse proxy).
 .B install.sh
 bootstraps the library, skips the welcome wizard, enables the content server
 with auto-start, and generates an upload-capable user; credentials in

@@ -23,11 +23,16 @@ Image: `lscr.io/linuxserver/calibre:latest` (Calibre 9.11.0, arm64). Container n
 
 | What | URL | Login |
 |---|---|---|
-| Desktop UI (full Calibre in browser) | http://192.168.1.52:8091 | — |
-| Desktop UI (https) | https://192.168.1.52:8092 | — |
+| Desktop UI (full Calibre in browser) | **https://192.168.1.52:8092** | — |
 | Content server (books web app) | http://192.168.1.52:8081 | `calibre` / see `~/dockersource/calibre/.env` on pi52 |
 
-No VNC client needed — the desktop streams to the browser via KasmVNC.
+No VNC client needed — the desktop streams to the browser.
+
+> **HTTPS required for the desktop UI.** The streaming stack (Selkies/KasmVNC) refuses plain
+> http with *"This application requires a secure connection (HTTPS)"* — the browser APIs it
+> uses only work in a secure context. Use port **8092** and accept the self-signed certificate
+> warning once. Port 8091 (http) is only useful behind a TLS-terminating reverse proxy.
+> The content server on 8081 is Calibre's own web app and works fine over plain http.
 
 ## Upload books
 
@@ -36,7 +41,7 @@ No VNC client needed — the desktop streams to the browser via KasmVNC.
 
 ## Convert books
 
-In the desktop UI (http://192.168.1.52:8091): select a book → **Convert books** → choose output format (EPUB, MOBI, AZW3, PDF, …) → OK. The converted format is added to the same book entry.
+In the desktop UI (https://192.168.1.52:8092): select a book → **Convert books** → choose output format (EPUB, MOBI, AZW3, PDF, …) → OK. The converted format is added to the same book entry.
 
 ## Download books
 
