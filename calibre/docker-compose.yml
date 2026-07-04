@@ -1,0 +1,18 @@
+services:
+  calibre:
+    image: lscr.io/linuxserver/calibre:latest
+    container_name: calibre
+    restart: unless-stopped
+    ports:
+      - 8091:8080   # KasmVNC web UI (http) — full Calibre desktop in the browser
+      - 8092:8181   # KasmVNC web UI (https)
+      - 8081:8081   # Calibre content server (browse/download/upload books)
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=Europe/Vienna
+    volumes:
+      - calibre_config:/config
+
+volumes:
+  calibre_config:

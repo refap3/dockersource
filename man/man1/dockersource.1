@@ -206,6 +206,17 @@ filebrowser/filebrowser — Web UI for browsing and managing files. Port: 8099.
 Password is randomly generated on first start; retrieve with
 .BR "docker logs filebrowser" ,
 then change under Settings → User Management.
+.TP
+.B calibre/
+lscr.io/linuxserver/calibre — Full Calibre desktop streamed to the browser via
+KasmVNC. Ports: 8091 (desktop UI http), 8092 (desktop UI https), 8081 (content
+server for browsing, uploading, and downloading books).
+.B install.sh
+bootstraps the library, skips the welcome wizard, enables the content server
+with auto-start, and generates an upload-capable user; credentials in
+.BR .env .
+Upload/download files via the KasmVNC side panel; convert books via the
+desktop UI. Requires arm64 (Pi 4/5, 64-bit OS).
 .SS Updating containers
 .PP
 .RS
