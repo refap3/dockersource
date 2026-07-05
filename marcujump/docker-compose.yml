@@ -1,0 +1,8 @@
+services:
+  marcujump:
+    build: .
+    image: marcujump:latest
+    container_name: marcujump
+    restart: unless-stopped
+    ports:
+      - 8093:80

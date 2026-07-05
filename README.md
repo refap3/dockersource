@@ -102,6 +102,7 @@ The generated files are gitignored since they contain credentials.
 | `netwatch/` | build from source | Home network monitor — device catalog, categories, power-on/off alarms | 8095 | `config.yml` |
 | `homarr/` | `ghcr.io/homarr-labs/homarr` | Homelab dashboard | 7575 | `.env` |
 | `sudokusolver/` | build from source | AI-powered Sudoku solver web app | 8011 | `.env` (optional) |
+| `marcujump/` | build from source | "Markus im Weltall" browser jump-and-run game — game fetched from [refap3/marcujump](https://github.com/refap3/marcujump) at build time | 8093 | — |
 | `watchtower/` | `containrrr/watchtower` | On-demand container image updater — run once, then exits; cleans up old images | — | — |
 | `cloudflared/` | `cloudflare/cloudflared` | Cloudflare Tunnel (zero-trust ingress) | — | `.env` |
 | `twingate-connector/` | `twingate/connector` | Twingate zero-trust network connector | — | `.env` |
@@ -133,17 +134,19 @@ SSH into the host running the container, then pull the latest code and restart:
 cd ~/dockersource
 git pull
 cd <service-name>
-docker compose up -d --build   # build-from-source services (netwatch, sudokusolver)
+docker compose up -d --build   # build-from-source services (netwatch, sudokusolver, marcujump)
 # or
 docker compose pull && docker compose up -d   # image-based services (all others)
 ```
 
-For **netwatch** and **sudokusolver** specifically, `update.sh` handles this in one step:
+For **netwatch**, **sudokusolver**, and **marcujump**, `update.sh` handles this in one step:
 
 ```bash
 cd ~/dockersource/<service-name>
 bash update.sh
 ```
+
+**marcujump** is a special case: its source lives in a separate GitHub repo, not in this one. `update.sh` compares the upstream `index.html` (SHA-256) with the copy inside the running container and rebuilds only if the game actually changed — no `git pull` of this repo needed.
 
 Your config files (`.env`, `config.yml`) and data volumes are never touched by an update.
 
@@ -157,6 +160,7 @@ Your config files (`.env`, `config.yml`) and data volumes are never touched by a
   It checks all running containers for newer images, updates them, and removes the old images, then exits.
 - **filebrowser** — password is randomly generated on first start. Retrieve it with `docker logs filebrowser`, then change it under Settings → User Management.
 - **calibre** — `install.sh` bootstraps everything: creates the library, skips the welcome wizard, enables the content server (port 8081) with auto-start, and creates an upload-capable user (credentials in `calibre/.env`). The full desktop runs in the browser at **https://\<host\>:8092** (no VNC client needed) — HTTPS is mandatory, the streaming stack rejects plain http ("This application requires a secure connection"); accept the self-signed cert warning once. Port 8091 (http) only works behind a TLS reverse proxy. Upload/download files via the KasmVNC side panel; convert books via the desktop UI (Convert books button). The content server (8081) works over plain http. arm64 image — works on Pi 4/5 running 64-bit OS.
+- **marcujump** — the image clones [refap3/marcujump](https://github.com/refap3/marcujump) at build time, so `install.sh` needs internet access on the Docker host. Game at `http://<host>:8093`, guide at `http://<host>:8093/MarcuJumpGuide.html`.
 - **netalertx** — on Raspberry Pi, the entrypoint `mounts.py` script fails with exit 126 (`python3: Operation not permitted`) unless `cap_add: [NET_ADMIN, NET_RAW]` and `security_opt: [seccomp:unconfined]` are set. Both are included in the compose file.
 
 ---

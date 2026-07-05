@@ -179,6 +179,17 @@ in
 .B .env
 is optional; enables image import.
 .TP
+.B marcujump/
+Build from source — "Markus im Weltall" browser jump-and-run game served by
+nginx. Port: 8093. The game is cloned from
+.I https://github.com/refap3/marcujump
+at build time, so the image always ships the current upstream version; the
+Docker host needs internet access during build. Guide at
+.IR /MarcuJumpGuide.html .
+.B update.sh
+compares the upstream index.html (SHA-256) with the copy inside the running
+container and rebuilds only if the game changed.
+.TP
 .B watchtower/
 containrrr/watchtower — On-demand container image updater. Runs once then exits; cleans up old images.
 Trigger with:
@@ -226,17 +237,22 @@ cd ~/dockersource && git pull
 .br
 cd <service-name>
 .br
-docker compose up -d --build          # build-from-source (netwatch, sudokusolver)
+docker compose up -d --build          # build-from-source (netwatch, sudokusolver, marcujump)
 .br
 docker compose pull && docker compose up -d   # image-based (all others)
 .RE
 .PP
-.B netwatch
+.BR netwatch ,
+.BR sudokusolver ,
 and
-.B sudokusolver
+.B marcujump
 also have
 .B update.sh
 that handles this in one step.
+For
+.B marcujump
+no git pull of this repo is needed — its update.sh checks the upstream game
+repo directly.
 Config files (.env, config.yml) and data volumes are never touched by an update.
 .SH SYNOLOGY VARIANTS
 The
