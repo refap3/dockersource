@@ -20,7 +20,9 @@ Open `http://<host>:7575` and walk through the wizard **before** running the syn
 
 Then run `findtargetcontainers.sh` (below) to populate the board.
 
-**Troubleshooting: login says "welcome back" but no credentials work.** The wizard finished without creating a user (`onboarding` table at `finish`, `user` table empty). Reset the wizard to the user-creation step and reload the page:
+**Important — close old homarr tabs before (re)installing.** A browser tab left open from a previous homarr instance replays its wizard state against the new instance the moment it comes up, silently advancing onboarding to `finish` without ever showing the user-creation step. Close all homarr tabs on all devices and use a fresh private window for the wizard.
+
+**Troubleshooting: login says "welcome back" but no credentials work.** The wizard finished without creating a user (`onboarding` table at `finish`, `user` table empty) — usually caused by the stale-tab issue above. Reset the wizard to the user-creation step and reload the page:
 
 ```bash
 docker exec homarr node -e '
