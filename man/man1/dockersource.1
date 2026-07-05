@@ -181,7 +181,10 @@ next run, manually created tiles are never touched. Idempotent; supports
 .IR name ,
 and per-container docker labels
 .BR homarr.ignore / homarr.url / homarr.icon .
-See homarr/README.md.
+Built-in special cases: background containers (twingate, cloudflared,
+portainer agent) get no tile; calibre links to its https UI (:8092) plus an
+extra content-server tile (:8081); marcujump gets an extra Handbuch tile
+(/MarcuJumpGuide.html). See homarr/README.md.
 .TP
 .B sudokusolver/
 Build from source — AI-powered Sudoku solver web app. Port: 8011.

@@ -65,6 +65,18 @@ Re-run any time (idempotent), e.g. from cron. Only tiles the script created itse
 
 URL heuristic: container port 80 → 443 → 8080 → 3000 → 9443/8443 (https) → lowest port ≥ 1000. Containers without published ports get a tile without a link.
 
+### Built-in special cases
+
+Hardcoded in `sync-homarr-apps.js` (docker labels still win over these):
+
+| Container | Behavior |
+|---|---|
+| `twingate*`, `cloudflared`, `portainer-agent`/`portainer_agent` | background/infrastructure containers — never get a tile |
+| `calibre` | tile URL is the **https** web UI `https://<host>:8092/` (the http one only works behind a TLS proxy); an extra tile **calibre content** → `http://<host>:8081/` is added |
+| `marcujump` | extra tile **marcujump handbuch** → `http://<host>:8093/MarcuJumpGuide.html` |
+
+Extra tiles are managed like normal container tiles: they appear when the parent container exists and are removed when it's gone.
+
 ### How it works
 
 `findtargetcontainers.sh` runs on the Docker host; the actual sync (`sync-homarr-apps.js`) executes inside the homarr container via `docker exec`, using the container's node runtime, the mounted `/var/run/docker.sock` for the scan, and better-sqlite3 for direct writes to `/appdata/db/db.sqlite` (homarr's public API has no board endpoints).

@@ -21,6 +21,10 @@
 //   homarr.ignore=true   skip this container
 //   homarr.url=<url>     use this URL instead of the derived one
 //   homarr.icon=<url>    use this icon instead of the derived one
+//
+// Built-in special cases (BACKGROUND_CONTAINERS / SPECIAL_CASES below):
+// background containers get no tile; some containers get a URL override
+// and/or extra tiles that are added/removed together with the container.
 
 const http = require("http");
 const https = require("https");
@@ -44,6 +48,36 @@ const WIZARD_APPS = new Map([
 // (flag file below), so identical widgets the user adds later survive.
 const WIZARD_WIDGET_KINDS = ["archiveTeamWarrior", "clock", "weather", "bookmarks"];
 const WIZARD_WIDGET_FLAG = "/appdata/ftc-wizard-widgets-pruned";
+// Infrastructure/background containers that never get a tile.
+const BACKGROUND_CONTAINERS = [
+  /^twingate/i,
+  /^cloudflared?/i,
+  /^portainer[-_]?agent/i,
+];
+// Per-container special cases: URL overrides and extra tiles that live and
+// die with their parent container. URLs are templates with {ip} placeholder.
+const SPECIAL_CASES = {
+  calibre: {
+    // 8092 is the https web UI; the http one (8091) only works behind TLS proxy
+    url: "https://{ip}:8092/",
+    extras: [
+      {
+        suffix: "content",
+        title: "calibre content",
+        url: "http://{ip}:8081/",
+      },
+    ],
+  },
+  marcujump: {
+    extras: [
+      {
+        suffix: "handbuch",
+        title: "marcujump handbuch",
+        url: "http://{ip}:8093/MarcuJumpGuide.html",
+      },
+    ],
+  },
+};
 const ICON_CDN = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/";
 const FALLBACK_ICON = ICON_CDN + "docker.png";
 const HTTPS_CONTAINER_PORTS = new Set([443, 8443, 9443]);
@@ -138,13 +172,27 @@ async function scanContainers() {
     if (!name) continue;
     // skip homarr itself (FTC_SELF = container name, set by the wrapper)
     if (name === self || c.Id.startsWith(self)) continue;
+    if (BACKGROUND_CONTAINERS.some((re) => re.test(name))) continue;
     const labels = c.Labels || {};
     if (labels["homarr.ignore"] === "true") continue;
-    const url = labels["homarr.url"] || pickUrl(c.Ports || []);
+    const special = SPECIAL_CASES[name];
+    const specialUrl = special && special.url ? special.url.replace("{ip}", HOST_IP) : null;
+    const url = labels["homarr.url"] || specialUrl || pickUrl(c.Ports || []);
     const icon = labels["homarr.icon"] || (await pickIcon(name, c.Image || ""));
     // tile title: compose service name reads nicer than "project-service-1"
     const title = labels["com.docker.compose.service"] || name;
     result.push({ name, title, url, icon });
+    // extra tiles tied to this container (added/removed together with it)
+    if (special && special.extras) {
+      for (const e of special.extras) {
+        result.push({
+          name: name + "/" + e.suffix,
+          title: e.title,
+          url: e.url.replace("{ip}", HOST_IP),
+          icon: e.icon || icon,
+        });
+      }
+    }
   }
   return result;
 }
