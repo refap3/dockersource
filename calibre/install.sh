@@ -7,8 +7,7 @@
 # Starts the container, then bootstraps it for immediate use:
 #   - creates the library at /config/Calibre Library
 #   - skips the welcome wizard
-#   - enables the content server on port 8081 (auto-starts with calibre)
-#   - creates a content-server user with upload (write) permission
+#   - enables the content server on port 8081 (auto-starts with calibre, no authentication)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,22 +19,6 @@ echo "=== calibre — install ==="
 if ! command -v docker &>/dev/null; then
     echo "ERROR: docker not found. Install Docker and try again." >&2
     exit 1
-fi
-
-# ── Configuration ──────────────────────────────────────────────────────────────
-# Content-server credentials are generated once and stored in .env (gitignored).
-if [ -f .env ]; then
-    # shellcheck disable=SC1091
-    . ./.env
-fi
-CALIBRE_UPLOAD_USER="${CALIBRE_UPLOAD_USER:-calibre}"
-if [ -z "${CALIBRE_UPLOAD_PASSWORD:-}" ]; then
-    CALIBRE_UPLOAD_PASSWORD="$(openssl rand -hex 8)"
-    {
-        echo "CALIBRE_UPLOAD_USER=$CALIBRE_UPLOAD_USER"
-        echo "CALIBRE_UPLOAD_PASSWORD=$CALIBRE_UPLOAD_PASSWORD"
-    } > .env
-    echo "Generated content-server credentials (saved to .env)."
 fi
 
 # ── Start ──────────────────────────────────────────────────────────────────────
@@ -60,10 +43,7 @@ sleep 5
 
 # ── Bootstrap (idempotent) ─────────────────────────────────────────────────────
 echo "Bootstrapping library and content server ..."
-docker exec -u abc -e HOME=/config \
-    -e BOOTSTRAP_USER="$CALIBRE_UPLOAD_USER" \
-    -e BOOTSTRAP_PW="$CALIBRE_UPLOAD_PASSWORD" \
-    calibre calibre-debug -c "
+docker exec -u abc -e HOME=/config calibre calibre-debug -c "
 import os
 lib = '/config/Calibre Library'
 os.makedirs(lib, exist_ok=True)
@@ -82,17 +62,9 @@ dynamic.set('welcome_wizard_was_run', True)
 from calibre.gui2 import config as gui_config
 gui_config['autolaunch_server'] = True
 
-# Content server: port 8081, authentication on
+# Content server: port 8081, no authentication (LAN-open; do not expose to WAN)
 from calibre.srv.opts import change_settings
-change_settings(port=8081, auth=True)
-
-# Content-server user with write (upload) permission
-from calibre.constants import config_dir
-from calibre.srv.users import UserManager
-m = UserManager(os.path.join(config_dir, 'server-users.sqlite'))
-user, pw = os.environ['BOOTSTRAP_USER'], os.environ['BOOTSTRAP_PW']
-if user not in m.all_user_names:
-    m.add_user(user, pw)
+change_settings(port=8081, auth=False)
 print('bootstrap-ok')
 "
 
@@ -109,7 +81,6 @@ echo "Done."
 echo "  Desktop UI (in browser):  https://$IP:8092   [https $vnc_code]"
 echo "      HTTPS only — accept the self-signed certificate warning once."
 echo "      (http port 8091 is refused by the streaming stack unless behind a TLS proxy)"
-echo "  Content server:           http://$IP:8081   [http $srv_code]"
-echo "  Content-server login:     $CALIBRE_UPLOAD_USER / $CALIBRE_UPLOAD_PASSWORD  (stored in .env)"
+echo "  Content server:           http://$IP:8081   [http $srv_code]  (no login — LAN-open, do not port-forward)"
 echo ""
 echo "Upload/download files in the desktop UI via the side panel (left arrow tab)."
