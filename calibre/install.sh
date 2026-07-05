@@ -7,7 +7,8 @@
 # Starts the container, then bootstraps it for immediate use:
 #   - creates the library at /config/Calibre Library
 #   - skips the welcome wizard
-#   - enables the content server on port 8081 (auto-starts with calibre, no authentication)
+#   - enables the content server on port 8081 (auto-starts with calibre, no authentication,
+#     uploads allowed from the LAN via trusted_ips)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -62,9 +63,11 @@ dynamic.set('welcome_wizard_was_run', True)
 from calibre.gui2 import config as gui_config
 gui_config['autolaunch_server'] = True
 
-# Content server: port 8081, no authentication (LAN-open; do not expose to WAN)
+# Content server: port 8081, no authentication (LAN-open; do not expose to WAN).
+# trusted_ips lets un-authenticated LAN clients upload/change books;
+# 172.16.0.0/12 covers the docker bridge so host-local requests work too.
 from calibre.srv.opts import change_settings
-change_settings(port=8081, auth=False)
+change_settings(port=8081, auth=False, trusted_ips='192.168.1.0/24,172.16.0.0/12,127.0.0.1')
 print('bootstrap-ok')
 "
 
@@ -81,6 +84,6 @@ echo "Done."
 echo "  Desktop UI (in browser):  https://$IP:8092   [https $vnc_code]"
 echo "      HTTPS only — accept the self-signed certificate warning once."
 echo "      (http port 8091 is refused by the streaming stack unless behind a TLS proxy)"
-echo "  Content server:           http://$IP:8081   [http $srv_code]  (no login — LAN-open, do not port-forward)"
+echo "  Content server:           http://$IP:8081   [http $srv_code]  (no login, LAN uploads enabled — do not port-forward)"
 echo ""
 echo "Upload/download files in the desktop UI via the side panel (left arrow tab)."

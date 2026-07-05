@@ -241,8 +241,9 @@ server for browsing, uploading, and downloading books; plain http works),
 8091 (http, only usable behind a TLS reverse proxy).
 .B install.sh
 bootstraps the library, skips the welcome wizard, and enables the content
-server with auto-start and no authentication (LAN-open; do not port-forward
-8081).
+server with auto-start and no authentication; trusted_ips allows LAN clients
+to upload and edit books without login (LAN-open read/write; do not
+port-forward 8081).
 Upload/download files via the KasmVNC side panel; convert books via the
 desktop UI. Requires arm64 (Pi 4/5, 64-bit OS).
 .SS Updating containers
