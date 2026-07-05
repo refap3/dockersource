@@ -31,22 +31,21 @@ KEY="$(grep -E '^SECRET_ENCRYPTION_KEY=' .env | cut -d= -f2-)"
 if [[ -z "$KEY" || "$KEY" == "your-64-char-hex-key-here" ]]; then
     if command -v openssl &>/dev/null; then
         GENERATED="$(openssl rand -hex 32)"
-        # Use a temp file to avoid sed -i portability issues
-        TMP="$(mktemp)"
-        grep -v '^SECRET_ENCRYPTION_KEY=' .env > "$TMP"
-        echo "SECRET_ENCRYPTION_KEY=$GENERATED" >> "$TMP"
-        mv "$TMP" .env
-        echo ""
-        echo ">>> SECRET_ENCRYPTION_KEY generated and written to .env."
     else
-        echo ""
-        echo "ACTION REQUIRED — set SECRET_ENCRYPTION_KEY in .env before starting:"
-        echo "  Generate: openssl rand -hex 32"
-        echo "  Then set: SECRET_ENCRYPTION_KEY=<result> in .env"
-        echo ""
-        echo "Then re-run this script."
-        exit 0
+        # Fallback: 32 random bytes as hex from /dev/urandom (no openssl needed)
+        GENERATED="$(head -c 32 /dev/urandom | od -An -v -tx1 | tr -d ' \n')"
     fi
+    if [[ ${#GENERATED} -ne 64 ]]; then
+        echo "ERROR: failed to generate a 64-char hex key." >&2
+        exit 1
+    fi
+    # Use a temp file to avoid sed -i portability issues
+    TMP="$(mktemp)"
+    grep -v '^SECRET_ENCRYPTION_KEY=' .env > "$TMP"
+    echo "SECRET_ENCRYPTION_KEY=$GENERATED" >> "$TMP"
+    mv "$TMP" .env
+    echo ""
+    echo ">>> SECRET_ENCRYPTION_KEY generated and written to .env."
 fi
 
 echo "SECRET_ENCRYPTION_KEY is set."
