@@ -25,6 +25,7 @@
 const http = require("http");
 const https = require("https");
 const os = require("os");
+const fs = require("fs");
 
 const MARKER = "Auto-added by findtargetcontainers.sh from container: ";
 const HOST_IP = process.env.FTC_HOST_IP;
@@ -39,6 +40,10 @@ const WIZARD_APPS = new Map([
   ["Help Translate", "https://homarr.dev/docs/community/translations"],
   ["Support Homarr", "https://opencollective.com/homarr"],
 ]);
+// Widgets the wizard puts on the first board. Pruned only ONCE per install
+// (flag file below), so identical widgets the user adds later survive.
+const WIZARD_WIDGET_KINDS = ["archiveTeamWarrior", "clock", "weather", "bookmarks"];
+const WIZARD_WIDGET_FLAG = "/appdata/ftc-wizard-widgets-pruned";
 const ICON_CDN = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/";
 const FALLBACK_ICON = ICON_CDN + "docker.png";
 const HTTPS_CONTAINER_PORTS = new Set([443, 8443, 9443]);
@@ -206,6 +211,16 @@ function main(containers) {
             (!a.href && containerNames.has(a.name))))
     );
 
+  const pruneWidgets = !KEEP_DEFAULTS && !fs.existsSync(WIZARD_WIDGET_FLAG);
+  const findWizardWidgets = () =>
+    db
+      .prepare(
+        "SELECT id, kind FROM item WHERE kind IN (" +
+          WIZARD_WIDGET_KINDS.map(() => "?").join(",") +
+          ")"
+      )
+      .all(...WIZARD_WIDGET_KINDS);
+
   const sync = db.transaction(() => {
     // next free row per layout in the target section
     const nextY = {};
@@ -281,6 +296,14 @@ function main(containers) {
         report.pruned.push(app.name);
       }
     }
+
+    // prune the wizard's widgets, once per install
+    if (pruneWidgets) {
+      for (const w of findWizardWidgets()) {
+        db.prepare("DELETE FROM item WHERE id = ?").run(w.id);
+        report.pruned.push("widget: " + w.kind);
+      }
+    }
   });
 
   if (DRY_RUN) {
@@ -294,8 +317,11 @@ function main(containers) {
     }
     for (const name of managedByName.keys()) if (!seen.has(name)) report.removed.push(name);
     if (!KEEP_DEFAULTS) for (const app of findWizardApps()) report.pruned.push(app.name);
+    if (pruneWidgets)
+      for (const w of findWizardWidgets()) report.pruned.push("widget: " + w.kind);
   } else {
     sync();
+    if (pruneWidgets) fs.writeFileSync(WIZARD_WIDGET_FLAG, new Date().toISOString() + "\n");
   }
   db.close();
 

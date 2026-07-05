@@ -19,7 +19,8 @@
 #   --board NAME     sync onto this board (default: homarr's home board)
 #   --container N    homarr container name (default: auto-detect by image)
 #   --keep-defaults  keep the onboarding wizard's leftovers (sample links like
-#                    Homarr Docs, and docker-import tiles); default: removed
+#                    Homarr Docs, docker-import tiles, default widgets);
+#                    default: removed (widgets only once per install)
 #
 # Per-container overrides via docker labels:
 #   homarr.ignore=true   never add this container
