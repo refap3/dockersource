@@ -75,6 +75,7 @@ Hardcoded in `sync-homarr-apps.js` (docker labels still win over these):
 |---|---|
 | `twingate*`, `cloudflared`, `portainer-agent`/`portainer_agent` | background/infrastructure containers — never get a tile |
 | `calibre` | tile URL is the **https** web UI `https://<host>:8092/` (the http one only works behind a TLS proxy); an extra tile **calibre content** → `http://<host>:8081/` is added |
+| `netwatch` | tile URL `http://<host>:8095/` — runs in host network mode, so no published ports to derive a URL from |
 | `marcujump` | extra tile **marcujump handbuch** → `http://<host>:8093/MarcuJumpGuide.html` |
 
 Extra tiles are managed like normal container tiles: they appear when the parent container exists and are removed when it's gone.

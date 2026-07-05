@@ -183,7 +183,8 @@ and per-container docker labels
 .BR homarr.ignore / homarr.url / homarr.icon .
 Built-in special cases: background containers (twingate, cloudflared,
 portainer agent) get no tile; calibre links to its https UI (:8092) plus an
-extra content-server tile (:8081); marcujump gets an extra Handbuch tile
+extra content-server tile (:8081); netwatch links to :8095 (host network
+mode, no published ports); marcujump gets an extra Handbuch tile
 (/MarcuJumpGuide.html). After each sync the board is compacted (gaps from
 removed tiles closed, tiles repacked top-left). See homarr/README.md.
 .TP

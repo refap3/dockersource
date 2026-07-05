@@ -68,6 +68,10 @@ const SPECIAL_CASES = {
       },
     ],
   },
+  netwatch: {
+    // host network mode — no published ports to derive a URL from
+    url: "http://{ip}:8095/",
+  },
   marcujump: {
     extras: [
       {
