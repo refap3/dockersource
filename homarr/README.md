@@ -8,21 +8,14 @@ Homelab dashboard ([homarr-labs/homarr](https://github.com/homarr-labs/homarr)),
 bash install.sh
 ```
 
-Fully automatic — `SECRET_ENCRYPTION_KEY` is generated and written to `.env` without any manual step (openssl if available, `/dev/urandom` fallback otherwise). The key encrypts stored integration credentials: generate once, never change it.
+`SECRET_ENCRYPTION_KEY` is generated and written to `.env` without any manual step (openssl if available, `/dev/urandom` fallback otherwise). The key encrypts stored integration credentials: generate once, never change it.
 
-### First start: onboarding wizard
+The script then **prompts for an admin username and password** and creates the account directly in the DB (`create-admin.js` — bcrypt-hashed password, `credentials-admin` group with admin permission, `everyone` membership; exactly what the wizard's user step writes). The web onboarding wizard is skipped entirely: after install, log in straight away, then run `findtargetcontainers.sh` (below) to populate the board.
 
-Open `http://<host>:7575` and walk through the wizard **before** running the sync script:
+- Non-interactive installs: set `HOMARR_ADMIN_USER` and `HOMARR_ADMIN_PASSWORD`. Without a TTY and without these variables the admin step is skipped — rerun `install.sh` interactively later; it is idempotent and never touches an existing user.
+- Why not the web wizard? A browser tab left open from a previous homarr instance replays its wizard state against a new instance the moment it comes up, silently advancing onboarding to `finish` **without the user-creation step** — you end up at a login screen with no valid credentials. Creating the admin at install time avoids that entirely.
 
-1. **Setup mode** — pick **"Start from scratch"** (import is only for homarr < 1.0 configs, restore for a SQLite backup).
-2. **Create the admin user** — this is the only place credentials are set; there is no default username/password.
-3. Remaining steps (group, settings, integrations) — click through as you like. **Skip the "import from Docker" step** — `findtargetcontainers.sh` handles that better (correct URLs, auto-updates); imported tiles would be pruned on the first sync run anyway.
-
-Then run `findtargetcontainers.sh` (below) to populate the board.
-
-**Important — close old homarr tabs before (re)installing.** A browser tab left open from a previous homarr instance replays its wizard state against the new instance the moment it comes up, silently advancing onboarding to `finish` without ever showing the user-creation step. Close all homarr tabs on all devices and use a fresh private window for the wizard.
-
-**Troubleshooting: login says "welcome back" but no credentials work.** The wizard finished without creating a user (`onboarding` table at `finish`, `user` table empty) — usually caused by the stale-tab issue above. Reset the wizard to the user-creation step and reload the page:
+**Troubleshooting: login says "welcome back" but no credentials work** (install predating `create-admin.js` that hit the stale-tab issue — `onboarding` at `finish`, `user` table empty). Rerun `bash install.sh`, or reset the wizard to the user-creation step and reload the page:
 
 ```bash
 docker exec homarr node -e '
@@ -31,7 +24,7 @@ db.prepare("UPDATE onboarding SET step = ?, previous_step = ?").run("user", "sta
 docker restart homarr
 ```
 
-**Full reset (wipe all homarr data, back to the wizard):**
+**Full reset (wipe all homarr data):**
 
 ```bash
 docker compose down -v && bash install.sh
