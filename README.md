@@ -102,7 +102,7 @@ The generated files are gitignored since they contain credentials.
 | `netwatch/` | build from source | Home network monitor — device catalog, categories, power-on/off alarms | 8095 | `config.yml` |
 | `homarr/` | `ghcr.io/homarr-labs/homarr` | Homelab dashboard | 7575 | `.env` |
 | `sudokusolver/` | build from source | AI-powered Sudoku solver web app | 8011 | `.env` (optional) |
-| `ouroboros/` | `containrrr/watchtower` | On-demand container image updater — run once, then exits; cleans up old images | — | — |
+| `watchtower/` | `containrrr/watchtower` | On-demand container image updater — run once, then exits; cleans up old images | — | — |
 | `cloudflared/` | `cloudflare/cloudflared` | Cloudflare Tunnel (zero-trust ingress) | — | `.env` |
 | `twingate-connector/` | `twingate/connector` | Twingate zero-trust network connector | — | `.env` |
 | `wg-easy/` | `ghcr.io/wg-easy/wg-easy` | WireGuard VPN with web UI | 51821 | — |
@@ -206,7 +206,7 @@ dcud synology/homarr/
 | `synology/wg-easy/` | `wg-easy/` | Bind mount; requires WireGuard kernel module |
 | `synology/filebrowser/` | `filebrowser/` | Mounts `/volume1` as root; uses port 8080 internally (Synology Docker blocks port 80 binding) |
 
-> **dozzle, ouroboros (watchtower), cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is. Confirmed working: dozzle (`/var/run/docker.sock` path is identical on Synology DSM).
+> **dozzle, watchtower, cloudflared, twingate-connector** — no Synology variant needed, the standard compose files work as-is. Confirmed working: dozzle (`/var/run/docker.sock` path is identical on Synology DSM).
 
 ### wg-easy on Synology
 

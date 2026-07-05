@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# ouroboros (watchtower) — installer
+# watchtower — installer
 #
-# From repo root:   bash ouroboros/install.sh
+# From repo root:   bash watchtower/install.sh
 # From service dir: bash install.sh
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$SCRIPT_DIR"
 
-echo "=== ouroboros (watchtower) — install ==="
+echo "=== watchtower — install ==="
 
 # ── Prerequisites ──────────────────────────────────────────────────────────────
 if ! command -v docker &>/dev/null; then

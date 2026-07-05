@@ -9,4 +9,4 @@ services:
       - WATCHTOWER_RUN_ONCE=true
       - WATCHTOWER_CLEANUP=true
       - TZ=Europe/Amsterdam
-      - DOCKER_API_VERSION=1.47
+      - DOCKER_API_VERSION=1.43

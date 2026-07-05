@@ -179,7 +179,7 @@ in
 .B .env
 is optional; enables image import.
 .TP
-.B ouroboros/
+.B watchtower/
 containrrr/watchtower — On-demand container image updater. Runs once then exits; cleans up old images.
 Trigger with:
 .B docker start watchtower && docker logs -f watchtower
@@ -300,7 +300,7 @@ Same as wg-easy/ with bind mount; requires WireGuard kernel module.
 .B synology/filebrowser/
 Same as filebrowser/ but mounts /volume1 as root; uses port 8080 internally.
 .PP
-dozzle, ouroboros, cloudflared, and twingate-connector have no Synology variant — standard compose files work as-is.
+dozzle, watchtower, cloudflared, and twingate-connector have no Synology variant — standard compose files work as-is.
 .SH FILES
 .TP
 .I ~/dockersource/portainer-convert.py
