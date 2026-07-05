@@ -43,6 +43,8 @@ Scans the Docker containers on this node and mirrors them as app tiles on the de
 - **changed URLs/icons** are updated
 - **onboarding wizard leftovers are pruned** — the sample links (Homarr Docs, Homarr GitHub, Help Translate, Support Homarr; matched on exact name *and* URL), the tiles from the wizard's "import from Docker" step (no description, broken `http://socket:<port>` URL or duplicate of a managed container tile), and the wizard's default widgets (Archive Team Warrior, clock, weather, bookmarks). Widgets are pruned only **once** per install (flag file `ftc-wizard-widgets-pruned` in the `homarr_appdata` volume), so identical widgets you add later survive. Pass `--keep-defaults` to keep everything; tiles you created yourself are never removed
 
+After every sync the board is **compacted**: gaps left by removed tiles disappear and all tiles are repacked top-left in their existing reading order (this also repositions manually placed tiles on the synced board).
+
 Re-run any time (idempotent), e.g. from cron. Only tiles the script created itself are managed — it tags them in the app description and never touches manually created apps. The homarr SQLite DB is backed up to `db.sqlite.ftc-backup` (inside the `homarr_appdata` volume) before every write, and changes show up on the next browser reload — no container restart needed.
 
 ### Flags

@@ -352,6 +352,32 @@ function main(containers) {
         report.pruned.push("widget: " + w.kind);
       }
     }
+
+    // compact: removed tiles leave holes — repack everything top-left,
+    // preserving the existing reading order (by row, then column)
+    for (const l of layouts) {
+      const placed = db
+        .prepare(
+          "SELECT item_id, width, height FROM item_layout WHERE section_id = ? AND layout_id = ? ORDER BY y_offset, x_offset"
+        )
+        .all(section.id, l.id);
+      let x = 0,
+        y = 0,
+        rowHeight = 1;
+      for (const p of placed) {
+        const w = Math.min(p.width, l.column_count);
+        if (x + w > l.column_count) {
+          x = 0;
+          y += rowHeight;
+          rowHeight = 1;
+        }
+        db.prepare(
+          "UPDATE item_layout SET x_offset = ?, y_offset = ? WHERE item_id = ? AND section_id = ? AND layout_id = ?"
+        ).run(x, y, p.item_id, section.id, l.id);
+        x += w;
+        rowHeight = Math.max(rowHeight, p.height);
+      }
+    }
   });
 
   if (DRY_RUN) {

@@ -184,7 +184,8 @@ and per-container docker labels
 Built-in special cases: background containers (twingate, cloudflared,
 portainer agent) get no tile; calibre links to its https UI (:8092) plus an
 extra content-server tile (:8081); marcujump gets an extra Handbuch tile
-(/MarcuJumpGuide.html). See homarr/README.md.
+(/MarcuJumpGuide.html). After each sync the board is compacted (gaps from
+removed tiles closed, tiles repacked top-left). See homarr/README.md.
 .TP
 .B sudokusolver/
 Build from source — AI-powered Sudoku solver web app. Port: 8011.
