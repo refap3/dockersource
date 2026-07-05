@@ -10,6 +10,31 @@ bash install.sh
 
 Fully automatic — `SECRET_ENCRYPTION_KEY` is generated and written to `.env` without any manual step (openssl if available, `/dev/urandom` fallback otherwise). The key encrypts stored integration credentials: generate once, never change it.
 
+### First start: onboarding wizard
+
+Open `http://<host>:7575` and walk through the wizard **before** running the sync script:
+
+1. **Setup mode** — pick **"Start from scratch"** (import is only for homarr < 1.0 configs, restore for a SQLite backup).
+2. **Create the admin user** — this is the only place credentials are set; there is no default username/password.
+3. Remaining steps (group, settings, integrations) — click through as you like. **Skip the "import from Docker" step** — `findtargetcontainers.sh` handles that better (correct URLs, auto-updates); imported tiles would be pruned on the first sync run anyway.
+
+Then run `findtargetcontainers.sh` (below) to populate the board.
+
+**Troubleshooting: login says "welcome back" but no credentials work.** The wizard finished without creating a user (`onboarding` table at `finish`, `user` table empty). Reset the wizard to the user-creation step and reload the page:
+
+```bash
+docker exec homarr node -e '
+const db = require("better-sqlite3")("/appdata/db/db.sqlite");
+db.prepare("UPDATE onboarding SET step = ?, previous_step = ?").run("user", "start");'
+docker restart homarr
+```
+
+**Full reset (wipe all homarr data, back to the wizard):**
+
+```bash
+docker compose down -v && bash install.sh
+```
+
 ## Auto-populate the dashboard: `findtargetcontainers.sh`
 
 ```bash
