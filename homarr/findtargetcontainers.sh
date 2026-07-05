@@ -12,12 +12,14 @@
 #
 # Usage:
 #   bash findtargetcontainers.sh [--dry-run] [--all] [--board <name>]
-#                                [--container <homarr-container>]
+#                                [--container <homarr-container>] [--keep-defaults]
 #
-#   --dry-run      show what would change, write nothing
-#   --all          include stopped containers (default: running only)
-#   --board NAME   sync onto this board (default: homarr's home board)
-#   --container N  homarr container name (default: auto-detect by image)
+#   --dry-run        show what would change, write nothing
+#   --all            include stopped containers (default: running only)
+#   --board NAME     sync onto this board (default: homarr's home board)
+#   --container N    homarr container name (default: auto-detect by image)
+#   --keep-defaults  keep the onboarding wizard's leftovers (sample links like
+#                    Homarr Docs, and docker-import tiles); default: removed
 #
 # Per-container overrides via docker labels:
 #   homarr.ignore=true   never add this container
@@ -29,6 +31,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 DRY_RUN=0
 INCLUDE_STOPPED=0
+KEEP_DEFAULTS=0
 BOARD="${FTC_BOARD:-}"
 HOMARR_CONTAINER="${FTC_CONTAINER:-}"
 
@@ -36,6 +39,7 @@ while [[ $# -gt 0 ]]; do
     case "$1" in
         --dry-run) DRY_RUN=1 ;;
         --all) INCLUDE_STOPPED=1 ;;
+        --keep-defaults) KEEP_DEFAULTS=1 ;;
         --board) BOARD="$2"; shift ;;
         --container) HOMARR_CONTAINER="$2"; shift ;;
         *) echo "Unknown option: $1" >&2; exit 2 ;;
@@ -80,6 +84,7 @@ docker exec -i \
     -e FTC_BOARD="$BOARD" \
     -e FTC_DRY_RUN="$DRY_RUN" \
     -e FTC_INCLUDE_STOPPED="$INCLUDE_STOPPED" \
+    -e FTC_KEEP_DEFAULTS="$KEEP_DEFAULTS" \
     "$HOMARR_CONTAINER" node < "$SCRIPT_DIR/sync-homarr-apps.js"
 
 echo ""

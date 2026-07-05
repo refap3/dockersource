@@ -15,6 +15,7 @@
 //   FTC_BOARD          board name to sync onto (default: server home board)
 //   FTC_DRY_RUN        "1" = report only, no writes
 //   FTC_INCLUDE_STOPPED "1" = include stopped containers
+//   FTC_KEEP_DEFAULTS  "1" = keep the wizard's leftover tiles (default: prune them)
 //
 // Per-container overrides via docker labels:
 //   homarr.ignore=true   skip this container
@@ -29,6 +30,15 @@ const MARKER = "Auto-added by findtargetcontainers.sh from container: ";
 const HOST_IP = process.env.FTC_HOST_IP;
 const DRY_RUN = process.env.FTC_DRY_RUN === "1";
 const INCLUDE_STOPPED = process.env.FTC_INCLUDE_STOPPED === "1";
+const KEEP_DEFAULTS = process.env.FTC_KEEP_DEFAULTS === "1";
+// Sample tiles the onboarding wizard creates; pruned unless --keep-defaults.
+// Matched on exact name AND URL so user-created apps are never touched.
+const WIZARD_APPS = new Map([
+  ["Homarr Docs", "https://homarr.dev/docs/getting-started"],
+  ["Homarr GitHub", "https://github.com/homarr-labs/homarr"],
+  ["Help Translate", "https://homarr.dev/docs/community/translations"],
+  ["Support Homarr", "https://opencollective.com/homarr"],
+]);
 const ICON_CDN = "https://cdn.jsdelivr.net/gh/walkxcode/dashboard-icons/png/";
 const FALLBACK_ICON = ICON_CDN + "docker.png";
 const HTTPS_CONTAINER_PORTS = new Set([443, 8443, 9443]);
@@ -165,7 +175,36 @@ function main(containers) {
     managed.map((a) => [a.description.slice(MARKER.length), a])
   );
   const seen = new Set();
-  const report = { added: [], removed: [], updated: [], unchanged: [] };
+  const report = { added: [], removed: [], pruned: [], updated: [], unchanged: [] };
+
+  const deleteAppWithItems = (app) => {
+    const items = db
+      .prepare("SELECT id, options FROM item WHERE kind = 'app'")
+      .all()
+      .filter((i) => {
+        try {
+          return JSON.parse(i.options).json.appId === app.id;
+        } catch {
+          return false;
+        }
+      });
+    for (const i of items) db.prepare("DELETE FROM item WHERE id = ?").run(i.id);
+    db.prepare("DELETE FROM app WHERE id = ?").run(app.id);
+  };
+
+  // Wizard leftovers: the sample links (exact name+URL match) plus tiles from
+  // the onboarding "import from Docker" step — those have no description and
+  // either a broken http://socket:<port> URL or no URL at all while the
+  // container is one this script already manages.
+  const containerNames = new Set(containers.map((c) => c.name));
+  const findWizardApps = () =>
+    db.prepare("SELECT * FROM app").all().filter(
+      (a) =>
+        WIZARD_APPS.get(a.name) === a.href ||
+        (!a.description &&
+          (/^https?:\/\/socket[:/]/.test(a.href || "") ||
+            (!a.href && containerNames.has(a.name))))
+    );
 
   const sync = db.transaction(() => {
     // next free row per layout in the target section
@@ -231,19 +270,16 @@ function main(containers) {
     // remove managed apps whose container is gone (item cascade-deletes its layouts)
     for (const [name, app] of managedByName) {
       if (seen.has(name)) continue;
-      const items = db
-        .prepare("SELECT id, options FROM item WHERE kind = 'app'")
-        .all()
-        .filter((i) => {
-          try {
-            return JSON.parse(i.options).json.appId === app.id;
-          } catch {
-            return false;
-          }
-        });
-      for (const i of items) db.prepare("DELETE FROM item WHERE id = ?").run(i.id);
-      db.prepare("DELETE FROM app WHERE id = ?").run(app.id);
+      deleteAppWithItems(app);
       report.removed.push(name);
+    }
+
+    // prune the wizard's sample tiles (Homarr Docs, GitHub, ...)
+    if (!KEEP_DEFAULTS) {
+      for (const app of findWizardApps()) {
+        deleteAppWithItems(app);
+        report.pruned.push(app.name);
+      }
     }
   });
 
@@ -257,22 +293,24 @@ function main(containers) {
       else report.unchanged.push(c.name);
     }
     for (const name of managedByName.keys()) if (!seen.has(name)) report.removed.push(name);
+    if (!KEEP_DEFAULTS) for (const app of findWizardApps()) report.pruned.push(app.name);
   } else {
     sync();
   }
   db.close();
 
   console.log((DRY_RUN ? "[DRY RUN] " : "") + "Board: " + board.name);
-  for (const k of ["added", "removed", "updated"])
+  for (const k of ["added", "removed", "pruned", "updated"])
     for (const n of report[k]) console.log("  " + k + ": " + n);
   console.log(
     "  summary: " +
       report.added.length + " added, " +
       report.removed.length + " removed, " +
+      report.pruned.length + " pruned, " +
       report.updated.length + " updated, " +
       report.unchanged.length + " unchanged"
   );
-  return report.added.length + report.removed.length + report.updated.length;
+  return report.added.length + report.removed.length + report.pruned.length + report.updated.length;
 }
 
 scanContainers()
