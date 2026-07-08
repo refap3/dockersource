@@ -1,0 +1,4 @@
+# upstream source, cloned by install.sh at build time
+adventurer5m/
+# printer IP, written by install.sh
+.env

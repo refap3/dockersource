@@ -1,0 +1,12 @@
+services:
+  FlashForgeAdventurer5MAPI:
+    build: .
+    image: flashforgeadventurer5mapi:latest
+    container_name: FlashForgeAdventurer5MAPI
+    restart: unless-stopped
+    ports:
+      - 9876:9876
+    labels:
+      # printer IP asked by install.sh; used by homarr findtargetcontainers.sh
+      # to build the tile URL http://<host>:9876/en/<printer-ip>
+      flashforge.printer_ip: ${PRINTER_IP:-192.168.1.113}

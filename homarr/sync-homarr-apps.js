@@ -55,8 +55,13 @@ const BACKGROUND_CONTAINERS = [
   /^portainer[-_]?agent/i,
 ];
 // Per-container special cases: URL overrides and extra tiles that live and
-// die with their parent container. URLs are templates with {ip} placeholder.
+// die with their parent container. URLs are templates: {ip} = docker host IP,
+// {label:<key>} = value of that docker label on the container.
 const SPECIAL_CASES = {
+  FlashForgeAdventurer5MAPI: {
+    // GUI path embeds the printer IP; install.sh stores it in this label
+    url: "http://{ip}:9876/en/{label:flashforge.printer_ip}",
+  },
   calibre: {
     // 8092 is the https web UI; the http one (8091) only works behind TLS proxy
     url: "https://{ip}:8092/",
@@ -179,8 +184,12 @@ async function scanContainers() {
     if (BACKGROUND_CONTAINERS.some((re) => re.test(name))) continue;
     const labels = c.Labels || {};
     if (labels["homarr.ignore"] === "true") continue;
+    const fillUrl = (tpl) =>
+      tpl
+        .replace("{ip}", HOST_IP)
+        .replace(/\{label:([^}]+)\}/g, (_, key) => labels[key] || "");
     const special = SPECIAL_CASES[name];
-    const specialUrl = special && special.url ? special.url.replace("{ip}", HOST_IP) : null;
+    const specialUrl = special && special.url ? fillUrl(special.url) : null;
     const url = labels["homarr.url"] || specialUrl || pickUrl(c.Ports || []);
     const icon = labels["homarr.icon"] || (await pickIcon(name, c.Image || ""));
     // tile title: compose service name reads nicer than "project-service-1"
@@ -192,7 +201,7 @@ async function scanContainers() {
         result.push({
           name: name + "/" + e.suffix,
           title: e.title,
-          url: e.url.replace("{ip}", HOST_IP),
+          url: fillUrl(e.url),
           icon: e.icon || icon,
         });
       }

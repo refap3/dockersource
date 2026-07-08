@@ -185,7 +185,9 @@ Built-in special cases: background containers (twingate, cloudflared,
 portainer agent) get no tile; calibre links to its https UI (:8092) plus an
 extra content-server tile (:8081); netwatch links to :8095 (host network
 mode, no published ports); marcujump gets an extra Handbuch tile
-(/MarcuJumpGuide.html). After each sync the board is compacted (gaps from
+(/MarcuJumpGuide.html); FlashForgeAdventurer5MAPI links to
+:9876/en/<printer-ip> (printer IP from the flashforge.printer_ip label set by
+flashforge/install.sh). After each sync the board is compacted (gaps from
 removed tiles closed, tiles repacked top-left). See homarr/README.md.
 .TP
 .B sudokusolver/
@@ -205,6 +207,22 @@ Docker host needs internet access during build. Guide at
 .B update.sh
 compares the upstream index.html (SHA-256) with the copy inside the running
 container and rebuilds only if the game changed.
+.TP
+.B flashforge/
+Build from source — API + GUI to monitor a FlashForge Adventurer 5M (Pro)
+3D printer, from
+.IR https://github.com/IgorZyktin/FlashForgeAdventurer5MAPI .
+Port: 9876. Container name: FlashForgeAdventurer5MAPI.
+.B install.sh
+asks for the printer IP (default 192.168.1.113;
+.B PRINTER_IP
+for non-interactive use), stores it in .env and as the
+.B flashforge.printer_ip
+container label, clones the upstream source and builds. GUI at
+.IR http://<host>:9876/en/<printer-ip> ,
+API at
+.IR http://<host>:9876/api/execute/<printer-ip>/progress .
+Re-run install.sh to change the IP or pull upstream updates.
 .TP
 .B watchtower/
 containrrr/watchtower — On-demand container image updater. Runs once then exits; cleans up old images.
@@ -254,7 +272,7 @@ cd ~/dockersource && git pull
 .br
 cd <service-name>
 .br
-docker compose up -d --build          # build-from-source (netwatch, sudokusolver, marcujump)
+docker compose up -d --build          # build-from-source (netwatch, sudokusolver, marcujump; flashforge: re-run install.sh)
 .br
 docker compose pull && docker compose up -d   # image-based (all others)
 .RE

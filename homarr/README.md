@@ -77,6 +77,7 @@ Hardcoded in `sync-homarr-apps.js` (docker labels still win over these):
 | `calibre` | tile URL is the **https** web UI `https://<host>:8092/` (the http one only works behind a TLS proxy); an extra tile **calibre content** → `http://<host>:8081/` is added |
 | `netwatch` | tile URL `http://<host>:8095/` — runs in host network mode, so no published ports to derive a URL from |
 | `marcujump` | extra tile **marcujump handbuch** → `http://<host>:8093/MarcuJumpGuide.html` |
+| `FlashForgeAdventurer5MAPI` | tile URL `http://<host>:9876/en/<printer-ip>` — the printer IP comes from the container's `flashforge.printer_ip` docker label, set by `flashforge/install.sh` |
 
 Extra tiles are managed like normal container tiles: they appear when the parent container exists and are removed when it's gone.
 
