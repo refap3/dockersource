@@ -13,13 +13,13 @@
 # findtargetcontainers.sh uses to build the tile URL
 # http://<docker-host>:9876/en/<printer-ip>.
 #
-# Also asks for an optional camera stream URL (CAMERA_URL for non-interactive
-# use). By default the GUI embeds the printer's own camera
-# (http://<printer-ip>:8080/?action=stream) — only 5M Pro / camera accessory
-# have one. If a URL is given, the upstream templates are patched to embed
-# that stream instead (must be MJPEG or a plain image URL — an <img> tag,
-# no RTSP/HLS). Empty answer keeps the printer default; enter "-" to clear
-# a previously saved URL.
+# Also asks for a camera stream URL (default http://192.168.1.37:9081/,
+# CAMERA_URL for non-interactive use) — ideally the MJPEG stream of a camera
+# that is also integrated in Home Assistant (e.g. a motionEye camera's
+# streaming port). The upstream templates are patched to embed that stream
+# in the GUI's video section (must be MJPEG or a plain image URL — an <img>
+# tag, no RTSP/HLS). Enter "-" to use the printer's own camera instead
+# (http://<printer-ip>:8080/?action=stream — 5M Pro / camera accessory only).
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -59,15 +59,19 @@ if ! printf '%s' "$PRINTER_IP" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
     exit 1
 fi
 
-# ── Configuration: camera stream URL (optional) ────────────────────────────────
-# Default: CAMERA_URL env var > existing .env value > empty (printer's own camera)
-if [[ -z "${CAMERA_URL:-}" ]] && [[ -f .env ]]; then
+# ── Configuration: camera stream URL ───────────────────────────────────────────
+# Default: CAMERA_URL env var > existing .env value > http://192.168.1.37:9081/
+DEFAULT_CAMERA_URL="http://192.168.1.37:9081/"
+if [[ -z "${CAMERA_URL:-}" ]] && [[ -f .env ]] && grep -q '^CAMERA_URL=' .env; then
     CAMERA_URL="$(sed -n 's/^CAMERA_URL=//p' .env | head -1)"
+else
+    CAMERA_URL="${CAMERA_URL:-$DEFAULT_CAMERA_URL}"
 fi
-CAMERA_URL="${CAMERA_URL:-}"
 
 if [[ -t 0 ]]; then
-    read -r -p "Camera stream URL (MJPEG; empty = printer camera, '-' = clear) [${CAMERA_URL:-printer camera}]: " answer
+    echo "Camera for the GUI's video section — ideally the MJPEG stream of a camera"
+    echo "that is also integrated in Home Assistant (e.g. a motionEye streaming port)."
+    read -r -p "Camera stream URL ('-' = use printer's own camera) [${CAMERA_URL:-printer camera}]: " answer
     if [[ "$answer" == "-" ]]; then
         CAMERA_URL=""
     elif [[ -n "$answer" ]]; then
@@ -76,6 +80,8 @@ if [[ -t 0 ]]; then
 else
     echo "No TTY — using camera URL '${CAMERA_URL:-<printer camera>}' (override with CAMERA_URL=...)."
 fi
+# CAMERA_URL=- also works non-interactively to select the printer's own camera
+[[ "$CAMERA_URL" == "-" ]] && CAMERA_URL=""
 
 if [[ -n "$CAMERA_URL" ]] && ! printf '%s' "$CAMERA_URL" | grep -Eq '^https?://'; then
     echo "ERROR: camera URL '$CAMERA_URL' must start with http:// or https://." >&2

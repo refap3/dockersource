@@ -218,15 +218,17 @@ asks for the printer IP (default 192.168.1.113;
 .B PRINTER_IP
 for non-interactive use), stores it in .env and as the
 .B flashforge.printer_ip
-container label, clones the upstream source and builds. It also asks for an
-optional camera stream URL
-.RB ( CAMERA_URL ;
-MJPEG or plain image, e.g. a motionEye stream port): the GUI's video section
-then shows that stream instead of the printer's own camera at
+container label, clones the upstream source and builds. It also asks for a
+camera stream URL (default
+.IR http://192.168.1.37:9081/ ;
+.BR CAMERA_URL ;
+MJPEG or plain image, ideally a camera also integrated in Home Assistant,
+e.g. a motionEye stream port): the GUI's video section shows that stream
+instead of the printer's own camera at
 .IR http://<printer-ip>:8080/?action=stream ,
 which only the 5M Pro or the camera accessory serves. Answer
 .B \-
-to clear a saved URL. GUI at
+to select the printer camera. GUI at
 .IR http://<host>:9876/en/<printer-ip> ,
 API at
 .IR http://<host>:9876/api/execute/<printer-ip>/progress .
