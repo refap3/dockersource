@@ -218,11 +218,19 @@ asks for the printer IP (default 192.168.1.113;
 .B PRINTER_IP
 for non-interactive use), stores it in .env and as the
 .B flashforge.printer_ip
-container label, clones the upstream source and builds. GUI at
+container label, clones the upstream source and builds. It also asks for an
+optional camera stream URL
+.RB ( CAMERA_URL ;
+MJPEG or plain image, e.g. a motionEye stream port): the GUI's video section
+then shows that stream instead of the printer's own camera at
+.IR http://<printer-ip>:8080/?action=stream ,
+which only the 5M Pro or the camera accessory serves. Answer
+.B \-
+to clear a saved URL. GUI at
 .IR http://<host>:9876/en/<printer-ip> ,
 API at
 .IR http://<host>:9876/api/execute/<printer-ip>/progress .
-Re-run install.sh to change the IP or pull upstream updates.
+Re-run install.sh to change the IP, the camera URL, or pull upstream updates.
 .TP
 .B watchtower/
 containrrr/watchtower — On-demand container image updater. Runs once then exits; cleans up old images.

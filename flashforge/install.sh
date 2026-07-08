@@ -12,6 +12,14 @@
 # container as the label flashforge.printer_ip, which homarr's
 # findtargetcontainers.sh uses to build the tile URL
 # http://<docker-host>:9876/en/<printer-ip>.
+#
+# Also asks for an optional camera stream URL (CAMERA_URL for non-interactive
+# use). By default the GUI embeds the printer's own camera
+# (http://<printer-ip>:8080/?action=stream) — only 5M Pro / camera accessory
+# have one. If a URL is given, the upstream templates are patched to embed
+# that stream instead (must be MJPEG or a plain image URL — an <img> tag,
+# no RTSP/HLS). Empty answer keeps the printer default; enter "-" to clear
+# a previously saved URL.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -51,8 +59,35 @@ if ! printf '%s' "$PRINTER_IP" | grep -Eq '^[0-9]{1,3}(\.[0-9]{1,3}){3}$'; then
     exit 1
 fi
 
-echo "PRINTER_IP=$PRINTER_IP" > .env
+# ── Configuration: camera stream URL (optional) ────────────────────────────────
+# Default: CAMERA_URL env var > existing .env value > empty (printer's own camera)
+if [[ -z "${CAMERA_URL:-}" ]] && [[ -f .env ]]; then
+    CAMERA_URL="$(sed -n 's/^CAMERA_URL=//p' .env | head -1)"
+fi
+CAMERA_URL="${CAMERA_URL:-}"
+
+if [[ -t 0 ]]; then
+    read -r -p "Camera stream URL (MJPEG; empty = printer camera, '-' = clear) [${CAMERA_URL:-printer camera}]: " answer
+    if [[ "$answer" == "-" ]]; then
+        CAMERA_URL=""
+    elif [[ -n "$answer" ]]; then
+        CAMERA_URL="$answer"
+    fi
+else
+    echo "No TTY — using camera URL '${CAMERA_URL:-<printer camera>}' (override with CAMERA_URL=...)."
+fi
+
+if [[ -n "$CAMERA_URL" ]] && ! printf '%s' "$CAMERA_URL" | grep -Eq '^https?://'; then
+    echo "ERROR: camera URL '$CAMERA_URL' must start with http:// or https://." >&2
+    exit 1
+fi
+
+{
+    echo "PRINTER_IP=$PRINTER_IP"
+    echo "CAMERA_URL=$CAMERA_URL"
+} > .env
 echo "Printer IP: $PRINTER_IP (saved to .env)"
+echo "Camera URL: ${CAMERA_URL:-<printer camera>} (saved to .env)"
 
 # ── Fetch upstream source ──────────────────────────────────────────────────────
 # The Dockerfile copies ./adventurer5m into the image; the source lives in the
@@ -63,6 +98,29 @@ TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 git clone --depth 1 "$UPSTREAM" "$TMP/repo"
 cp -r "$TMP/repo/adventurer5m" ./adventurer5m
+
+# ── Patch camera feed (optional) ────────────────────────────────────────────────
+# Upstream templates hardcode the printer's own camera:
+#   <img id="video_feed" src="http://{{ printer_ip }}:8080/?action=stream" ...>
+# Replace that src with CAMERA_URL if one was configured.
+if [[ -n "$CAMERA_URL" ]]; then
+    echo "Patching camera feed to $CAMERA_URL ..."
+    ESCAPED_URL="$(printf '%s' "$CAMERA_URL" | sed 's/[&|\\]/\\&/g')"
+    patched=0
+    for tpl in adventurer5m/templates/index_*.html; do
+        [[ -f "$tpl" ]] || continue
+        if grep -q 'id="video_feed"' "$tpl"; then
+            sed -i.bak "s|src=\"http://{{ printer_ip }}:8080/?action=stream\"|src=\"$ESCAPED_URL\"|" "$tpl"
+            rm -f "$tpl.bak"
+            grep -q "$CAMERA_URL" "$tpl" && patched=$((patched + 1))
+        fi
+    done
+    if [[ "$patched" -eq 0 ]]; then
+        echo "WARNING: no template patched — upstream markup may have changed; GUI keeps the printer camera." >&2
+    else
+        echo "Camera feed patched in $patched template(s)."
+    fi
+fi
 
 # ── Build & start ──────────────────────────────────────────────────────────────
 echo "Building and starting FlashForgeAdventurer5MAPI ..."
