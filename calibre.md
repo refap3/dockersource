@@ -13,7 +13,7 @@ Image: `lscr.io/linuxserver/calibre:latest` (Calibre 9.11.0, arm64). Container n
 2. **Installer written** (`calibre/install.sh`) — idempotent bootstrap, re-runnable
 3. **Library created** at `/config/Calibre Library` (metadata.db initialized)
 4. **Welcome wizard skipped** — `library_path` set, `welcome_wizard_was_run` flagged; desktop opens straight into the library
-5. **Content server configured** — port 8081, **no authentication** since 2026-07-05; `trusted_ips 192.168.1.0/24,172.16.0.0/12,127.0.0.1` allows anonymous LAN uploads/edits. LAN-open read/write, do not port-forward 8081
+5. **Content server configured** — port 8081, **no authentication** since 2026-07-05; `local_write True` (since 2026-07-15) allows anonymous uploads/edits — `trusted_ips` alone was not enough (it only bypasses auth when auth is enabled; with `auth False` the server stayed read-only). LAN-open read/write, do not port-forward 8081
 6. **Content server auto-start enabled** — `autolaunch_server` in the GUI config; server starts whenever the container (re)starts
 7. **Deployed & verified** — desktop UI answers 200, content server identifies as `calibre 9.11.0`, reachable without credentials, container survives restart
 8. **Docs updated** — README container index + secrets table + first-run notes, man page entry; commits `94dcd3e` (feat) and `27f1f2d` (fix: autostart pref lives in `calibre.gui2.config`, not `utils.config.prefs`)
@@ -35,7 +35,7 @@ No VNC client needed — the desktop streams to the browser.
 
 ## Upload books
 
-- **Content server (easiest):** open http://192.168.1.52:8081, click **Add books** — uploads go straight into the library, no login needed (`trusted_ips`).
+- **Content server (easiest):** open http://192.168.1.52:8081, click **Add books** — uploads go straight into the library, no login needed (`local_write`).
 - **Desktop UI:** open the KasmVNC side panel (arrow tab on the left edge) → upload the file, then in Calibre click **Add books** and pick it up from the upload folder.
 
 ## Convert books
