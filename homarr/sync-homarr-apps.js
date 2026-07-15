@@ -16,6 +16,8 @@
 //   FTC_DRY_RUN        "1" = report only, no writes
 //   FTC_INCLUDE_STOPPED "1" = include stopped containers
 //   FTC_KEEP_DEFAULTS  "1" = keep the wizard's leftover tiles (default: prune them)
+//   FTC_KEEP_PRIVATE   "1" = leave board visibility untouched (default: make the
+//                      target board public so it is viewable without login)
 //
 // Per-container overrides via docker labels:
 //   homarr.ignore=true   skip this container
@@ -36,6 +38,7 @@ const HOST_IP = process.env.FTC_HOST_IP;
 const DRY_RUN = process.env.FTC_DRY_RUN === "1";
 const INCLUDE_STOPPED = process.env.FTC_INCLUDE_STOPPED === "1";
 const KEEP_DEFAULTS = process.env.FTC_KEEP_DEFAULTS === "1";
+const KEEP_PRIVATE = process.env.FTC_KEEP_PRIVATE === "1";
 // Sample tiles the onboarding wizard creates; pruned unless --keep-defaults.
 // Matched on exact name AND URL so user-created apps are never touched.
 const WIZARD_APPS = new Map([
@@ -227,6 +230,19 @@ function main(containers) {
     board = homeId ? db.prepare("SELECT * FROM board WHERE id = ?").get(homeId) : null;
     if (!board) board = db.prepare("SELECT * FROM board LIMIT 1").get();
     if (!board) throw new Error("no board exists yet — create one in the homarr UI first");
+  }
+
+  // A dashboard is only useful if every device on the LAN can see it — private
+  // boards show a login page to clients without a session (phones, TVs, ...).
+  // Editing still requires an account; FTC_KEEP_PRIVATE=1 opts out.
+  if (!KEEP_PRIVATE && !board.is_public) {
+    if (!DRY_RUN) {
+      db.prepare("UPDATE board SET is_public = 1 WHERE id = ?").run(board.id);
+    }
+    console.log(
+      (DRY_RUN ? "[DRY RUN] " : "") +
+        "Board '" + board.name + "' made public (viewable without login)"
+    );
   }
   const section = db
     .prepare("SELECT * FROM section WHERE board_id = ? ORDER BY y_offset LIMIT 1")
