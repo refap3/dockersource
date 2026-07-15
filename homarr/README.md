@@ -43,7 +43,7 @@ Scans the Docker containers on this node and mirrors them as app tiles on the de
 - **changed URLs/icons** are updated
 - **onboarding wizard leftovers are pruned** — the sample links (Homarr Docs, Homarr GitHub, Help Translate, Support Homarr; matched on exact name *and* URL), the tiles from the wizard's "import from Docker" step (no description, broken `http://socket:<port>` URL or duplicate of a managed container tile), and the wizard's default widgets (Archive Team Warrior, clock, weather, bookmarks). Widgets are pruned only **once** per install (flag file `ftc-wizard-widgets-pruned` in the `homarr_appdata` volume), so identical widgets you add later survive. Pass `--keep-defaults` to keep everything; tiles you created yourself are never removed
 
-The target board is also **made public** — without this, devices without a login session (phones, TVs) only see homarr's login page. Public means anyone on the LAN can *view* the board (tiles, widgets, internal service URLs); editing still requires an account. Pass `--keep-private` to leave visibility untouched. Don't port-forward homarr with a public board.
+The target board is also **made public and set as the server-wide home board** (desktop + mobile, only where none is configured yet) — without both, devices without a login session (phones, TVs) land on homarr's login page: private boards require auth, and even a public board is unreachable from `/` when no anonymous home board is set. Public means anyone on the LAN can *view* the board (tiles, widgets, internal service URLs); editing still requires an account. Pass `--keep-private` to leave visibility and home board untouched. Don't port-forward homarr with a public board.
 
 After every sync the board is **compacted**: gaps left by removed tiles disappear and all tiles are repacked top-left in their existing reading order (this also repositions manually placed tiles on the synced board).
 
@@ -58,7 +58,7 @@ Re-run any time (idempotent), e.g. from cron. Only tiles the script created itse
 | `--board NAME` | sync onto this board instead of the home board |
 | `--container NAME` | homarr container name (default: auto-detected by image) |
 | `--keep-defaults` | keep the wizard's leftover tiles (default: prune them) |
-| `--keep-private` | leave board visibility untouched (default: make it public so it is viewable without login) |
+| `--keep-private` | leave board visibility and home board untouched (default: make the board public + server-wide home board so it is viewable without login) |
 
 ### Per-container overrides (docker labels)
 

@@ -22,9 +22,10 @@
 #   --keep-defaults  keep the onboarding wizard's leftovers (sample links like
 #                    Homarr Docs, docker-import tiles, default widgets);
 #                    default: removed (widgets only once per install)
-#   --keep-private   leave board visibility untouched; default: the target
-#                    board is made public (viewable without login, editing
-#                    still requires an account)
+#   --keep-private   leave board visibility and home board untouched; default:
+#                    the target board is made public and set as server-wide
+#                    home board (viewable without login, editing still
+#                    requires an account)
 #
 # Per-container overrides via docker labels:
 #   homarr.ignore=true   never add this container

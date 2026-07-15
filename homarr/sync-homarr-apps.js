@@ -16,8 +16,9 @@
 //   FTC_DRY_RUN        "1" = report only, no writes
 //   FTC_INCLUDE_STOPPED "1" = include stopped containers
 //   FTC_KEEP_DEFAULTS  "1" = keep the wizard's leftover tiles (default: prune them)
-//   FTC_KEEP_PRIVATE   "1" = leave board visibility untouched (default: make the
-//                      target board public so it is viewable without login)
+//   FTC_KEEP_PRIVATE   "1" = leave board visibility and home board untouched
+//                      (default: make the target board public and the server-wide
+//                      home board so it is viewable without login)
 //
 // Per-container overrides via docker labels:
 //   homarr.ignore=true   skip this container
@@ -243,6 +244,43 @@ function main(containers) {
       (DRY_RUN ? "[DRY RUN] " : "") +
         "Board '" + board.name + "' made public (viewable without login)"
     );
+  }
+
+  // Public alone is not enough: anonymous visitors land on "/", and without a
+  // server-wide home board that redirects to the login page. Set the target
+  // board as home (desktop + mobile) where none is configured yet — an
+  // existing choice is never overridden.
+  if (!KEEP_PRIVATE) {
+    const row = db
+      .prepare("SELECT value FROM serverSetting WHERE setting_key = 'board'")
+      .get();
+    const parsed = row ? JSON.parse(row.value) : { json: {} };
+    const patch = [];
+    if (!parsed.json.homeBoardId) {
+      parsed.json.homeBoardId = board.id;
+      patch.push("home board");
+    }
+    if (!parsed.json.mobileHomeBoardId) {
+      parsed.json.mobileHomeBoardId = board.id;
+      patch.push("mobile home board");
+    }
+    if (patch.length) {
+      if (!DRY_RUN) {
+        if (row) {
+          db.prepare(
+            "UPDATE serverSetting SET value = ? WHERE setting_key = 'board'"
+          ).run(JSON.stringify(parsed));
+        } else {
+          db.prepare(
+            "INSERT INTO serverSetting (setting_key, value) VALUES ('board', ?)"
+          ).run(JSON.stringify(parsed));
+        }
+      }
+      console.log(
+        (DRY_RUN ? "[DRY RUN] " : "") +
+          "Board '" + board.name + "' set as " + patch.join(" + ")
+      );
+    }
   }
   const section = db
     .prepare("SELECT * FROM section WHERE board_id = ? ORDER BY y_offset LIMIT 1")
