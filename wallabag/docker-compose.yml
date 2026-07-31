@@ -1,0 +1,25 @@
+services:
+  wallabag:
+    image: wallabag/wallabag:latest
+    container_name: wallabag
+    restart: unless-stopped
+    ports:
+      - 8085:80
+    environment:
+      # SQLite backend — no separate database container needed.
+      - SYMFONY__ENV__DATABASE_DRIVER=pdo_sqlite
+      - SYMFONY__ENV__DATABASE_PATH=/var/www/wallabag/data/db/wallabag.sqlite
+      # Must match the URL the browser/apps use, otherwise share links and the
+      # API break. Written to .env by install.sh.
+      - SYMFONY__ENV__DOMAIN_NAME=${WALLABAG_DOMAIN_NAME}
+      - SYMFONY__ENV__SECRET=${WALLABAG_SECRET}
+      # Single-user homelab instance: no public sign-up.
+      - SYMFONY__ENV__FOSUSER_REGISTRATION=false
+      - SYMFONY__ENV__FOSUSER_CONFIRMATION=false
+    volumes:
+      - wallabag_data:/var/www/wallabag/data
+      - wallabag_images:/var/www/wallabag/web/assets/images
+
+volumes:
+  wallabag_data:
+  wallabag_images:

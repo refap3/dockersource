@@ -234,6 +234,27 @@ API at
 .IR http://<host>:9876/api/execute/<printer-ip>/progress .
 Re-run install.sh to change the IP, the camera URL, or pull upstream updates.
 .TP
+.B wallabag/
+wallabag/wallabag — Read-it-later / bookmark archiver: saves readable copies of
+web articles. Port: 8085. Uses the SQLite backend, so no separate database
+container is required.
+.B install.sh
+generates
+.B WALLABAG_SECRET
+in .env (openssl, /dev/urandom fallback), sets
+.B WALLABAG_DOMAIN_NAME
+to http://<host-ip>:8085 (override via the environment variable of the same
+name; it must match the URL browsers and apps use, otherwise share links and
+the API break), waits for the first-run database setup, and changes the
+password of the built-in
+.B wallabag
+account — interactive prompt, or
+.B WALLABAG_ADMIN_PASSWORD
+for non-interactive use. Login user stays
+.BR wallabag .
+Public sign-up is disabled; add further users under Settings → Users.
+First start takes a few minutes on a Pi while the schema is created.
+.TP
 .B watchtower/
 containrrr/watchtower — On-demand container image updater. Runs once then exits; cleans up old images.
 Trigger with:
