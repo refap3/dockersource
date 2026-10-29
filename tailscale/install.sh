@@ -7,7 +7,8 @@
 # Joins this host to the tailnet as a subnet router (host network mode):
 #   - prompts for the auth key (or TS_AUTHKEY from the environment)
 #   - TS_HOSTNAME defaults to $(hostname -s), TS_ROUTES to the host's LAN subnet
-#   - advertises an exit node by default (TS_EXIT_NODE=0 to opt out)
+#   - asks for the node role: A) exit node (default)  B) normal node
+#     (TS_EXIT_NODE=1|0 presets it, also to switch roles on a re-run)
 #   - detects Docker's firewall backend (nftables / iptables)
 #   - enables host IP forwarding via sudo if off (asks first; TS_APPLY_SYSCTL=1
 #     for non-interactive use) — the container would crash-loop otherwise
@@ -102,19 +103,41 @@ if ! grep -q '^# routes-configured' .env; then
     echo ">>> TS_ROUTES set to '${ROUTES}'."
 fi
 
-# Exit node: on by default, only decided on first setup (same marker logic as
-# routes). TS_EXIT_NODE=0 opts out. Advertised as 0.0.0.0/0,::/0 in TS_ROUTES —
-# containerboot re-applies TS_ROUTES on every start, while TS_EXTRA_ARGS is
-# ignored once the node is logged in (TS_AUTH_ONCE).
-EXIT_ROUTES="0.0.0.0/0,::/0"
-if ! grep -q '^# exit-node-configured' .env; then
-    ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
-    if [[ "${TS_EXIT_NODE:-1}" != "0" && "$ROUTES" != *0.0.0.0/0* ]]; then
-        ROUTES="${ROUTES:+$ROUTES,}$EXIT_ROUTES"
-        set_env TS_ROUTES "$ROUTES"
-        echo ">>> Exit node enabled (TS_ROUTES=$ROUTES)."
+# Node role: exit node or normal node. Asked on first setup (same marker logic
+# as routes); TS_EXIT_NODE=1|0 presets it and also switches the role on a
+# re-run. Advertised as 0.0.0.0/0,::/0 in TS_ROUTES — containerboot re-applies
+# TS_ROUTES on every start, while TS_EXTRA_ARGS is ignored once the node is
+# logged in (TS_AUTH_ONCE).
+EXIT_CHOICE="${TS_EXIT_NODE:-}"
+if [[ -z "$EXIT_CHOICE" ]] && ! grep -q '^# exit-node-configured' .env; then
+    EXIT_CHOICE=1
+    if [[ -t 0 ]]; then
+        echo ""
+        echo "  Node role:"
+        echo "    A) exit node   — tailnet devices can route all internet traffic via this host"
+        echo "    B) normal node — tailnet member (plus the subnet routes above, if any)"
+        while :; do
+            read -r -p "Choose A or B [A]: " ROLE
+            case "$ROLE" in
+                ""|[Aa]) EXIT_CHOICE=1; break ;;
+                [Bb])    EXIT_CHOICE=0; break ;;
+                *)       echo "Please answer A or B." ;;
+            esac
+        done
     fi
-    echo "# exit-node-configured" >> .env
+fi
+if [[ -n "$EXIT_CHOICE" ]]; then
+    # Strip any exit routes, then re-add them for an exit node
+    ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
+    ROUTES="$(echo "$ROUTES" | tr ',' '\n' | grep -vxE '0\.0\.0\.0/0|::/0' | paste -sd, - || true)"
+    if [[ "$EXIT_CHOICE" != "0" ]]; then
+        ROUTES="${ROUTES:+$ROUTES,}0.0.0.0/0,::/0"
+        echo ">>> Role: exit node (TS_ROUTES=$ROUTES)."
+    else
+        echo ">>> Role: normal node (TS_ROUTES='$ROUTES')."
+    fi
+    set_env TS_ROUTES "$ROUTES"
+    grep -q '^# exit-node-configured' .env || echo "# exit-node-configured" >> .env
 fi
 
 # Firewall backend: tailscale must write its rules where Docker does. On a
@@ -216,6 +239,14 @@ if [[ -z "$TSIP" ]]; then
     echo "ERROR: tailscale did not come up. Check: docker logs tailscale" >&2
     echo "       Expired or already-used auth key? Clear TS_AUTHKEY in .env and re-run." >&2
     exit 1
+fi
+
+# Apply the role explicitly: containerboot's "tailscale set --advertise-routes"
+# keeps an existing exit node, so switching to a normal node needs this. The
+# pref lives in the state volume and survives restarts.
+if [[ "$EXIT_NODE" == "1" ]]; then EXIT_FLAG=true; else EXIT_FLAG=false; fi
+if ! docker exec tailscale tailscale set --advertise-exit-node="$EXIT_FLAG"; then
+    echo "WARNING: could not set --advertise-exit-node=$EXIT_FLAG." >&2
 fi
 
 echo ""

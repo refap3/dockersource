@@ -275,7 +275,7 @@ in
 .BR .env .
 .TP
 .B tailscale/
-tailscale/tailscale — Tailscale node, subnet router and exit node. Host
+tailscale/tailscale — Tailscale node and subnet router, optionally exit node. Host
 network mode, kernel networking via /dev/net/tun. No port.
 .B install.sh
 prompts for
@@ -285,12 +285,15 @@ variable for non-interactive use), sets
 .B TS_HOSTNAME
 to the short hostname and
 .B TS_ROUTES
-to the host's LAN subnet ('-' = none). The exit node is on by default:
-0.0.0.0/0,::/0 is appended to
-.B TS_ROUTES
-(set
-.B TS_EXIT_NODE=0
-on first install to opt out, or remove both entries from .env and re-run).
+to the host's LAN subnet ('-' = none), then asks for the node role:
+A) exit node (default) or B) normal node.
+.B TS_EXIT_NODE=1|0
+presets the answer and, on a re-run, switches the role; without it the saved
+role is kept. An exit node is advertised as 0.0.0.0/0,::/0 in
+.BR TS_ROUTES ,
+plus an explicit
+.B tailscale set --advertise-exit-node=true|false
+(the container's own set never removes an existing exit node).
 .B TS_FIREWALL_MODE
 is detected from Docker's firewall backend (nftables or iptables); a mismatch
 makes Docker's FORWARD drop policy discard all routed traffic. The key is
