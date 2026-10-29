@@ -297,8 +297,11 @@ makes Docker's FORWARD drop policy discard all routed traffic. The key is
 used only for the first login; the node identity persists in the
 .B tailscale_state
 volume. Host IP forwarding is required (IPv4 for subnet routes, IPv4 and IPv6
-for the exit node); without it the container crash-loops, so install.sh stops
-and prints the sysctl lines for /etc/sysctl.d/99-tailscale.conf, including
+for the exit node); without it the container crash-loops. If it is off,
+install.sh asks, then writes /etc/sysctl.d/99-tailscale.conf and applies it
+with sudo
+.RB ( TS_APPLY_SYSCTL=1
+for non-interactive use), including
 .B net.ipv6.conf.<iface>.accept_ra = 2
 so the host keeps its SLAAC IPv6 address. Approve routes and exit node in the
 admin console.

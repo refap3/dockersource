@@ -9,7 +9,8 @@
 #   - TS_HOSTNAME defaults to $(hostname -s), TS_ROUTES to the host's LAN subnet
 #   - advertises an exit node by default (TS_EXIT_NODE=0 to opt out)
 #   - detects Docker's firewall backend (nftables / iptables)
-#   - stops if IP forwarding is off (the container would crash-loop otherwise)
+#   - enables host IP forwarding via sudo if off (asks first; TS_APPLY_SYSCTL=1
+#     for non-interactive use) — the container would crash-loop otherwise
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -143,7 +144,7 @@ echo "TS_AUTHKEY and TS_HOSTNAME are set."
 
 # ── IP forwarding ──────────────────────────────────────────────────────────────
 # Subnet routes and exit node need forwarding on the host (host network mode —
-# compose sysctls don't apply). Not changed automatically: needs sudo.
+# compose sysctls don't apply). Applied with sudo after asking.
 ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
 EXTRA="$(grep -E '^TS_EXTRA_ARGS=' .env | cut -d= -f2- || true)"
 EXIT_NODE=0
@@ -157,21 +158,44 @@ ALL_ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
 NEED4=0; NEED6=0
 [[ "$ALL_ROUTES" == *.*/* ]] && NEED4=1
 [[ "$ALL_ROUTES" == *:*/* ]] && NEED6=1
-V4="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)"
-V6="$(cat /proc/sys/net/ipv6/conf/all/forwarding 2>/dev/null || echo 0)"
-if [[ ( "$NEED4" == "1" && "$V4" != "1" ) || ( "$NEED6" == "1" && "$V6" != "1" ) ]]; then
+fwd_ok() {
+    V4="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)"
+    V6="$(cat /proc/sys/net/ipv6/conf/all/forwarding 2>/dev/null || echo 0)"
+    [[ ! ( ( "$NEED4" == "1" && "$V4" != "1" ) || ( "$NEED6" == "1" && "$V6" != "1" ) ) ]]
+}
+if ! fwd_ok; then
     IF="$(ip route show default 2>/dev/null | awk '{for (i=1;i<NF;i++) if ($i=="dev") {print $(i+1); exit}}' || true)"
-    echo "" >&2
-    echo "ERROR: IP forwarding is off (ipv4=$V4 ipv6=$V6) — the container would crash-loop." >&2
-    echo "       Enable it permanently, then re-run:" >&2
-    echo "         echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-tailscale.conf" >&2
-    echo "         echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf" >&2
+    SYSCTL_FILE=/etc/sysctl.d/99-tailscale.conf
     # With forwarding on, Linux ignores router advertisements unless
     # accept_ra=2 — the host would lose its SLAAC IPv6 address.
-    echo "         echo 'net.ipv6.conf.${IF:-eth0}.accept_ra = 2' | sudo tee -a /etc/sysctl.d/99-tailscale.conf" >&2
-    echo "         sudo sysctl -p /etc/sysctl.d/99-tailscale.conf" >&2
-    echo "       Or drop the exit node: remove 0.0.0.0/0,::/0 from TS_ROUTES in .env." >&2
-    exit 1
+    SYSCTL_CONF="net.ipv4.ip_forward = 1
+net.ipv6.conf.all.forwarding = 1
+net.ipv6.conf.${IF:-eth0}.accept_ra = 2"
+    echo ""
+    echo ">>> IP forwarding is off (ipv4=$V4 ipv6=$V6) — the container would crash-loop."
+    echo "    Needed in $SYSCTL_FILE:"
+    echo "$SYSCTL_CONF" | sed 's/^/      /'
+    # Interactive: ask. Non-interactive: TS_APPLY_SYSCTL=1 applies via sudo -n.
+    APPLY="${TS_APPLY_SYSCTL:-}"
+    if [[ -z "$APPLY" && -t 0 ]]; then
+        read -r -p "Write $SYSCTL_FILE and apply it now with sudo? [Y/n]: " APPLY
+        [[ "$APPLY" =~ ^[Nn] ]] && APPLY=0 || APPLY=1
+    fi
+    if [[ "$APPLY" == "1" ]] && command -v sudo &>/dev/null; then
+        SUDO=sudo
+        [[ -t 0 ]] || SUDO="sudo -n"
+        if echo "$SYSCTL_CONF" | $SUDO tee "$SYSCTL_FILE" >/dev/null \
+           && $SUDO sysctl -p "$SYSCTL_FILE" >/dev/null; then
+            echo ">>> $SYSCTL_FILE written and applied."
+        fi
+    fi
+    if ! fwd_ok; then
+        echo "" >&2
+        echo "ERROR: IP forwarding still off (ipv4=$V4 ipv6=$V6). Write the lines above to" >&2
+        echo "       $SYSCTL_FILE, run: sudo sysctl -p $SYSCTL_FILE — then re-run." >&2
+        echo "       Or drop the exit node: remove 0.0.0.0/0,::/0 from TS_ROUTES in .env." >&2
+        exit 1
+    fi
 fi
 
 # ── Start ──────────────────────────────────────────────────────────────────────
