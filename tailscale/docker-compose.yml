@@ -19,6 +19,9 @@ services:
       - TS_EXTRA_ARGS=${TS_EXTRA_ARGS}
       # Kernel networking (not userspace) — required for subnet routing.
       - TS_USERSPACE=false
+      # Must match the backend Docker uses, or Docker's FORWARD DROP policy
+      # silently drops routed traffic. Detected by install.sh.
+      - TS_DEBUG_FIREWALL_MODE=${TS_FIREWALL_MODE:-nftables}
       # Auth key is only used for the first login; afterwards the node
       # identity lives in the state volume and the key may expire.
       - TS_AUTH_ONCE=true

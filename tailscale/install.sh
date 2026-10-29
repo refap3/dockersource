@@ -7,7 +7,9 @@
 # Joins this host to the tailnet as a subnet router (host network mode):
 #   - prompts for the auth key (or TS_AUTHKEY from the environment)
 #   - TS_HOSTNAME defaults to $(hostname -s), TS_ROUTES to the host's LAN subnet
-#   - checks IP forwarding (required for subnet routes / exit node)
+#   - advertises an exit node by default (TS_EXIT_NODE=0 to opt out)
+#   - detects Docker's firewall backend (nftables / iptables)
+#   - stops if IP forwarding is off (the container would crash-loop otherwise)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,19 +33,24 @@ fi
 # Required in .env:
 #   TS_AUTHKEY  — only used for the first login, then the state volume is enough
 #   TS_HOSTNAME — machine name in the tailnet
-# Optional: TS_ROUTES (advertised subnets), TS_EXTRA_ARGS (e.g. --advertise-exit-node)
+# Optional: TS_ROUTES (advertised subnets), TS_EXTRA_ARGS (--advertise-exit-node
+# by default), TS_FIREWALL_MODE (detected)
 if [[ ! -f .env ]]; then
     cp .env.example .env
     echo ""
     echo ">>> .env created from .env.example."
 fi
 
-# Replace KEY=... in .env (temp file avoids sed -i portability issues)
+# Replace KEY=... in .env in place, append if missing (temp file avoids sed -i
+# portability issues)
 set_env() {
     local TMP
     TMP="$(mktemp)"
-    grep -v "^$1=" .env > "$TMP" || true
-    echo "$1=$2" >> "$TMP"
+    awk -v k="$1" -v v="$2" '
+        index($0, k "=") == 1 { print k "=" v; done = 1; next }
+        { print }
+        END { if (!done) print k "=" v }
+    ' .env > "$TMP"
     mv "$TMP" .env
 }
 
@@ -94,6 +101,44 @@ if ! grep -q '^# routes-configured' .env; then
     echo ">>> TS_ROUTES set to '${ROUTES}'."
 fi
 
+# Exit node: on by default, only decided on first setup (same marker logic as
+# routes). TS_EXIT_NODE=0 opts out. Advertised as 0.0.0.0/0,::/0 in TS_ROUTES —
+# containerboot re-applies TS_ROUTES on every start, while TS_EXTRA_ARGS is
+# ignored once the node is logged in (TS_AUTH_ONCE).
+EXIT_ROUTES="0.0.0.0/0,::/0"
+if ! grep -q '^# exit-node-configured' .env; then
+    ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
+    if [[ "${TS_EXIT_NODE:-1}" != "0" && "$ROUTES" != *0.0.0.0/0* ]]; then
+        ROUTES="${ROUTES:+$ROUTES,}$EXIT_ROUTES"
+        set_env TS_ROUTES "$ROUTES"
+        echo ">>> Exit node enabled (TS_ROUTES=$ROUTES)."
+    fi
+    echo "# exit-node-configured" >> .env
+fi
+
+# Firewall backend: tailscale must write its rules where Docker does. On a
+# mismatch Docker's FORWARD DROP policy drops all routed traffic. Detected with
+# the image's own iptables-nft (no sudo needed).
+FWMODE="$(grep -E '^TS_FIREWALL_MODE=' .env | cut -d= -f2- || true)"
+if [[ -z "$FWMODE" ]]; then
+    FWMODE="${TS_FIREWALL_MODE:-}"
+    if [[ -z "$FWMODE" ]]; then
+        echo "Detecting Docker's firewall backend ..."
+        if docker run --rm --network host --cap-add NET_ADMIN --entrypoint iptables-nft \
+               tailscale/tailscale:stable -S FORWARD 2>/dev/null | grep -q -- '-j DOCKER'; then
+            FWMODE=nftables
+        elif docker run --rm --network host --cap-add NET_ADMIN --entrypoint iptables-legacy \
+               tailscale/tailscale:stable -S FORWARD 2>/dev/null | grep -q -- '-j DOCKER'; then
+            FWMODE=iptables
+        else
+            FWMODE=nftables
+            echo ">>> No Docker FORWARD rules found — defaulting to nftables."
+        fi
+    fi
+    set_env TS_FIREWALL_MODE "$FWMODE"
+    echo ">>> TS_FIREWALL_MODE set to $FWMODE."
+fi
+
 echo "TS_AUTHKEY and TS_HOSTNAME are set."
 
 # ── IP forwarding ──────────────────────────────────────────────────────────────
@@ -101,16 +146,32 @@ echo "TS_AUTHKEY and TS_HOSTNAME are set."
 # compose sysctls don't apply). Not changed automatically: needs sudo.
 ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
 EXTRA="$(grep -E '^TS_EXTRA_ARGS=' .env | cut -d= -f2- || true)"
-if [[ -n "$ROUTES" || "$EXTRA" == *advertise-exit-node* ]]; then
-    if [[ "$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)" != "1" ]]; then
-        echo ""
-        echo "WARNING: IP forwarding is off — subnet routes will not work." >&2
-        echo "         Enable it permanently with:" >&2
-        echo "           echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-tailscale.conf" >&2
-        echo "           echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf" >&2
-        echo "           sudo sysctl -p /etc/sysctl.d/99-tailscale.conf" >&2
-        echo ""
-    fi
+EXIT_NODE=0
+[[ "$ROUTES" == *0.0.0.0/0* || "$EXTRA" == *advertise-exit-node* ]] && EXIT_NODE=1
+# Subnet routes only, for the summary
+ROUTES="$(echo "$ROUTES" | tr ',' '\n' | grep -vxE '0\.0\.0\.0/0|::/0' | paste -sd, - || true)"
+# The container tries to enable forwarding for every address family in
+# TS_ROUTES and crash-loops if it can't (/proc/sys is read-only in it), so a
+# missing sysctl is fatal here. The exit node (0.0.0.0/0,::/0) needs both.
+ALL_ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
+NEED4=0; NEED6=0
+[[ "$ALL_ROUTES" == *.*/* ]] && NEED4=1
+[[ "$ALL_ROUTES" == *:*/* ]] && NEED6=1
+V4="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)"
+V6="$(cat /proc/sys/net/ipv6/conf/all/forwarding 2>/dev/null || echo 0)"
+if [[ ( "$NEED4" == "1" && "$V4" != "1" ) || ( "$NEED6" == "1" && "$V6" != "1" ) ]]; then
+    IF="$(ip route show default 2>/dev/null | awk '{for (i=1;i<NF;i++) if ($i=="dev") {print $(i+1); exit}}' || true)"
+    echo "" >&2
+    echo "ERROR: IP forwarding is off (ipv4=$V4 ipv6=$V6) — the container would crash-loop." >&2
+    echo "       Enable it permanently, then re-run:" >&2
+    echo "         echo 'net.ipv4.ip_forward = 1' | sudo tee /etc/sysctl.d/99-tailscale.conf" >&2
+    echo "         echo 'net.ipv6.conf.all.forwarding = 1' | sudo tee -a /etc/sysctl.d/99-tailscale.conf" >&2
+    # With forwarding on, Linux ignores router advertisements unless
+    # accept_ra=2 — the host would lose its SLAAC IPv6 address.
+    echo "         echo 'net.ipv6.conf.${IF:-eth0}.accept_ra = 2' | sudo tee -a /etc/sysctl.d/99-tailscale.conf" >&2
+    echo "         sudo sysctl -p /etc/sysctl.d/99-tailscale.conf" >&2
+    echo "       Or drop the exit node: remove 0.0.0.0/0,::/0 from TS_ROUTES in .env." >&2
+    exit 1
 fi
 
 # ── Start ──────────────────────────────────────────────────────────────────────
@@ -122,7 +183,8 @@ dcud
 echo "Waiting for tailscale to log in ..."
 TSIP=""
 for _ in $(seq 1 30); do
-    TSIP="$(docker exec tailscale tailscale ip -4 2>/dev/null | head -1 || true)"
+    # Match the IP itself — docker exec prints errors on stdout while restarting
+    TSIP="$(docker exec tailscale tailscale ip -4 2>/dev/null | grep -E '^100\.' | head -1 || true)"
     [[ -n "$TSIP" ]] && break
     sleep 2
 done
@@ -134,8 +196,10 @@ fi
 
 echo ""
 echo "Done. $TSHOST is in the tailnet as $TSIP"
-if [[ -n "$ROUTES" ]]; then
-    echo "  Approve the advertised routes ($ROUTES):"
+if [[ -n "$ROUTES" || "$EXIT_NODE" == "1" ]]; then
+    WHAT="${ROUTES:+routes ($ROUTES)}"
+    [[ "$EXIT_NODE" == "1" ]] && WHAT="${WHAT:+$WHAT + }exit node"
+    echo "  Approve $WHAT:"
     echo "  https://login.tailscale.com/admin/machines → $TSHOST → Edit route settings"
 fi
 echo "  Status: docker exec tailscale tailscale status"
