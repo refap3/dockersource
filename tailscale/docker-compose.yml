@@ -1,0 +1,32 @@
+services:
+  tailscale:
+    image: tailscale/tailscale:stable
+    container_name: tailscale
+    hostname: ${TS_HOSTNAME}
+    restart: unless-stopped
+    # Host network: the node gets the host's LAN view, so it can act as a
+    # subnet router / exit node for the whole network (like twingate-connector).
+    network_mode: host
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    environment:
+      - TS_AUTHKEY=${TS_AUTHKEY}
+      - TS_HOSTNAME=${TS_HOSTNAME}
+      - TS_ROUTES=${TS_ROUTES}
+      - TS_EXTRA_ARGS=${TS_EXTRA_ARGS}
+      # Kernel networking (not userspace) — required for subnet routing.
+      - TS_USERSPACE=false
+      # Auth key is only used for the first login; afterwards the node
+      # identity lives in the state volume and the key may expire.
+      - TS_AUTH_ONCE=true
+      - TS_STATE_DIR=/var/lib/tailscale
+      # Keep the host's DNS untouched.
+      - TS_ACCEPT_DNS=false
+    volumes:
+      - tailscale_state:/var/lib/tailscale
+
+volumes:
+  tailscale_state:

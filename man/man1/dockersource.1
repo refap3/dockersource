@@ -1,4 +1,4 @@
-.TH DOCKERSOURCE 1 "2026-05-22" "dockersource repo" "User Commands"
+.TH DOCKERSOURCE 1 "2026-10-29" "dockersource repo" "User Commands"
 .SH NAME
 dockersource \- Docker Compose files for homelab containers and a Portainer stack sync tool
 .SH SYNOPSIS
@@ -181,8 +181,8 @@ next run, manually created tiles are never touched. Idempotent; supports
 .IR name ,
 and per-container docker labels
 .BR homarr.ignore / homarr.url / homarr.icon .
-Built-in special cases: background containers (twingate, cloudflared,
-portainer agent) get no tile; calibre links to its https UI (:8092) plus an
+Built-in special cases: background containers (twingate, tailscale,
+cloudflared, portainer agent) get no tile; calibre links to its https UI (:8092) plus an
 extra content-server tile (:8081); netwatch links to :8095 (host network
 mode, no published ports); marcujump gets an extra Handbuch tile
 (/MarcuJumpGuide.html); FlashForgeAdventurer5MAPI links to
@@ -273,6 +273,28 @@ twingate/connector — Twingate zero-trust network connector. Requires
 .B TWINGATE_REFRESH_TOKEN
 in
 .BR .env .
+.TP
+.B tailscale/
+tailscale/tailscale — Tailscale node and subnet router. Host network mode,
+kernel networking via /dev/net/tun. No port.
+.B install.sh
+prompts for
+.B TS_AUTHKEY
+(from https://login.tailscale.com/admin/settings/keys; set the environment
+variable for non-interactive use), sets
+.B TS_HOSTNAME
+to the short hostname and
+.B TS_ROUTES
+to the host's LAN subnet ('-' = none). The key is used only for the first
+login; the node identity persists in the
+.B tailscale_state
+volume. Subnet routes need host IP forwarding — install.sh warns and prints
+the sudo sysctl commands if it is off. Approve routes in the admin console.
+Exit node: add
+.B --advertise-exit-node
+to
+.B TS_EXTRA_ARGS
+in .env and re-run.
 .TP
 .B wg-easy/
 ghcr.io/wg-easy/wg-easy — WireGuard VPN with web UI. Port: 51821.

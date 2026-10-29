@@ -55,6 +55,7 @@ const WIZARD_WIDGET_FLAG = "/appdata/ftc-wizard-widgets-pruned";
 // Infrastructure/background containers that never get a tile.
 const BACKGROUND_CONTAINERS = [
   /^twingate/i,
+  /^tailscale/i,
   /^cloudflared?/i,
   /^portainer[-_]?agent/i,
 ];
