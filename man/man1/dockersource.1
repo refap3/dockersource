@@ -292,8 +292,9 @@ presets the answer and, on a re-run, switches the role; without it the saved
 role is kept. An exit node is advertised as 0.0.0.0/0,::/0 in
 .BR TS_ROUTES ,
 plus an explicit
-.B tailscale set --advertise-exit-node=true|false
-(the container's own set never removes an existing exit node).
+.B tailscale set --advertise-routes=... --advertise-exit-node=true|false
+(the container's own set never removes an existing exit node and skips empty
+routes).
 .B TS_FIREWALL_MODE
 is detected from Docker's firewall backend (nftables or iptables); a mismatch
 makes Docker's FORWARD drop policy discard all routed traffic. The key is
@@ -306,7 +307,9 @@ with sudo
 .RB ( TS_APPLY_SYSCTL=1
 for non-interactive use), including
 .B net.ipv6.conf.<iface>.accept_ra = 2
-so the host keeps its SLAAC IPv6 address. Approve routes and exit node in the
+so the host keeps its SLAAC IPv6 address. On a normal node without subnet
+routes the file is not needed; install.sh offers to remove a leftover one and
+resets IPv6 forwarding (ip_forward stays for Docker). Approve routes and exit node in the
 admin console.
 .TP
 .B wg-easy/

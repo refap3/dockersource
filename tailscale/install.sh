@@ -9,6 +9,7 @@
 #   - TS_HOSTNAME defaults to $(hostname -s), TS_ROUTES to the host's LAN subnet
 #   - asks for the node role: A) exit node (default)  B) normal node
 #     (TS_EXIT_NODE=1|0 presets it, also to switch roles on a re-run)
+#   - offers to remove a leftover sysctl file on a normal node without routes
 #   - detects Docker's firewall backend (nftables / iptables)
 #   - enables host IP forwarding via sudo if off (asks first; TS_APPLY_SYSCTL=1
 #     for non-interactive use) — the container would crash-loop otherwise
@@ -181,6 +182,7 @@ ALL_ROUTES="$(grep -E '^TS_ROUTES=' .env | cut -d= -f2- || true)"
 NEED4=0; NEED6=0
 [[ "$ALL_ROUTES" == *.*/* ]] && NEED4=1
 [[ "$ALL_ROUTES" == *:*/* ]] && NEED6=1
+SYSCTL_FILE=/etc/sysctl.d/99-tailscale.conf
 fwd_ok() {
     V4="$(cat /proc/sys/net/ipv4/ip_forward 2>/dev/null || echo 0)"
     V6="$(cat /proc/sys/net/ipv6/conf/all/forwarding 2>/dev/null || echo 0)"
@@ -188,7 +190,6 @@ fwd_ok() {
 }
 if ! fwd_ok; then
     IF="$(ip route show default 2>/dev/null | awk '{for (i=1;i<NF;i++) if ($i=="dev") {print $(i+1); exit}}' || true)"
-    SYSCTL_FILE=/etc/sysctl.d/99-tailscale.conf
     # With forwarding on, Linux ignores router advertisements unless
     # accept_ra=2 — the host would lose its SLAAC IPv6 address.
     SYSCTL_CONF="net.ipv4.ip_forward = 1
@@ -221,6 +222,35 @@ net.ipv6.conf.${IF:-eth0}.accept_ra = 2"
     fi
 fi
 
+# Non-routing node (no subnet routes, no exit node): the sysctl file is not
+# needed — offer to remove it (leftover from an earlier role or aborted run)
+# and reset the runtime values. ip_forward stays: Docker needs it.
+if [[ "$NEED4" == "0" && "$NEED6" == "0" && -f "$SYSCTL_FILE" ]]; then
+    RA_IF="$(sed -nE 's/^net\.ipv6\.conf\.([^.]+)\.accept_ra.*/\1/p' "$SYSCTL_FILE" | head -1)"
+    echo ""
+    echo ">>> Normal node without routes — $SYSCTL_FILE is not needed."
+    REMOVE="${TS_APPLY_SYSCTL:-}"
+    if [[ -z "$REMOVE" && -t 0 ]]; then
+        read -r -p "Remove it and reset IPv6 forwarding with sudo? [Y/n]: " REMOVE
+        [[ "$REMOVE" =~ ^[Nn] ]] && REMOVE=0 || REMOVE=1
+    fi
+    if [[ "$REMOVE" == "1" ]] && command -v sudo &>/dev/null; then
+        SUDO=sudo
+        [[ -t 0 ]] || SUDO="sudo -n"
+        if $SUDO rm -f "$SYSCTL_FILE" \
+           && $SUDO sysctl -qw net.ipv6.conf.all.forwarding=0 \
+           && { [[ -z "$RA_IF" ]] || $SUDO sysctl -qw "net.ipv6.conf.$RA_IF.accept_ra=1"; }; then
+            echo ">>> $SYSCTL_FILE removed, IPv6 forwarding off${RA_IF:+, $RA_IF accept_ra=1}."
+        else
+            echo "WARNING: could not remove $SYSCTL_FILE." >&2
+        fi
+    else
+        echo "    Kept. To remove by hand:"
+        echo "      sudo rm $SYSCTL_FILE"
+        echo "      sudo sysctl -w net.ipv6.conf.all.forwarding=0${RA_IF:+ net.ipv6.conf.$RA_IF.accept_ra=1}"
+    fi
+fi
+
 # ── Start ──────────────────────────────────────────────────────────────────────
 echo "Starting tailscale ..."
 type dcud &>/dev/null 2>&1 || dcud() { docker compose up -d; }
@@ -241,12 +271,13 @@ if [[ -z "$TSIP" ]]; then
     exit 1
 fi
 
-# Apply the role explicitly: containerboot's "tailscale set --advertise-routes"
-# keeps an existing exit node, so switching to a normal node needs this. The
-# pref lives in the state volume and survives restarts.
+# Apply routes and role explicitly: containerboot's "tailscale set
+# --advertise-routes" keeps an existing exit node, and skips the flag when
+# TS_ROUTES is empty, so removing either needs this. The prefs live in the
+# state volume and survive restarts.
 if [[ "$EXIT_NODE" == "1" ]]; then EXIT_FLAG=true; else EXIT_FLAG=false; fi
-if ! docker exec tailscale tailscale set --advertise-exit-node="$EXIT_FLAG"; then
-    echo "WARNING: could not set --advertise-exit-node=$EXIT_FLAG." >&2
+if ! docker exec tailscale tailscale set --advertise-routes="$ROUTES" --advertise-exit-node="$EXIT_FLAG"; then
+    echo "WARNING: could not set --advertise-routes=$ROUTES --advertise-exit-node=$EXIT_FLAG." >&2
 fi
 
 echo ""
