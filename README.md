@@ -124,6 +124,8 @@ The generated files are gitignored since they contain credentials.
 | `twingate-connector/` | `TWINGATE_NETWORK` *(subdomain only, e.g. `yournetwork`)*, `TWINGATE_ACCESS_TOKEN`, `TWINGATE_REFRESH_TOKEN` | Twingate admin dashboard → Connectors |
 | `tailscale/` | `TS_AUTHKEY`, `TS_HOSTNAME`, `TS_ROUTES`, `TS_FIREWALL_MODE`, `TS_EXTRA_ARGS` *(optional)* | Auth key: [login.tailscale.com/admin/settings/keys](https://login.tailscale.com/admin/settings/keys) — pasted at the `install.sh` prompt; hostname, routes and firewall mode are filled in automatically |
 
+Every folder that uses a `.env` has its own `.gitignore` excluding it, so secrets are never committed. New containers with secrets need the same.
+
 #### Containers requiring config files
 
 | Folder | File | What to set |
